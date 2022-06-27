@@ -9,6 +9,7 @@
 #include <fstream>
 #include "alifont.hpp"
 #include "simhei.h"
+#include "iconcpp.h"
 
 #define  OK 0
 #define ERROR_PARAMETER -1
@@ -237,6 +238,16 @@ EXTERN_DLL_EXPORT HWND GUICreate(wchar_t* title, int w, int h, int x, int y, wch
 	{
 		fontAtlas->AddFontFromFileTTF(wstr_utf8(font_path).c_str(), font_size, &config_words, glyphRange);
 	}
+
+    ImFontConfig icons_config;
+    ImFontConfig CustomFont;
+    CustomFont.FontDataOwnedByAtlas = false;
+    icons_config.MergeMode = true;
+    icons_config.PixelSnapH = true;
+    icons_config.OversampleH = 2.5;
+    icons_config.OversampleV = 2.5;
+    static const ImWchar icons_ranges[] = { 0xf000, 0xf3ff, 0 };
+    fontAtlas->AddFontFromMemoryCompressedTTF(font_awesome_data, font_awesome_size, font_size, &icons_config, icons_ranges);
 
     //ImGuiSetStyle();
     ImGui::StyleColorsDark();

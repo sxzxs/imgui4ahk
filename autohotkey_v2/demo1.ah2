@@ -27,7 +27,7 @@ main()
     WinShow(hwnd)
     WinSetAlwaysOnTop( 1,hwnd)
 
-    _ImGui_StyleColorsClassic()
+    _ImGui_StyleColorsDark()
 
     io := _ImGui_GetIO()
     frame := NumGet(io, 216, "float")
@@ -36,6 +36,28 @@ main()
 
     _ImGui_SetWindowTitleAlign(0.5, 0.5)
     _ImGui_EnableDocking(True)
+
+    style := _ImGui_GetStyle_obj()
+	style.Colors[ImGuiCol_TitleBg] := [255, 101, 53, 255]
+	style.Colors[ImGuiCol_TitleBgActive] := [255, 101, 53, 255]
+	style.Colors[ImGuiCol_TitleBgCollapsed] := [0, 0, 0, 130]
+
+	style.Colors[ImGuiCol_Button] := [31, 30, 31, 255]
+	style.Colors[ImGuiCol_ButtonActive] := [41, 40, 41, 255]
+	style.Colors[ImGuiCol_ButtonHovered] := [41, 40, 41, 255]
+
+	style.Colors[ImGuiCol_Separator] := [70, 70, 70, 255]
+	style.Colors[ImGuiCol_SeparatorActive] := [76, 76, 76, 255]
+	style.Colors[ImGuiCol_SeparatorHovered] := [76, 76, 76, 255]
+
+	style.Colors[ImGuiCol_FrameBg] := [37, 36, 37, 255]
+	style.Colors[ImGuiCol_FrameBgActive] := [37, 36, 37, 255]
+	style.Colors[ImGuiCol_FrameBgHovered] := [37, 36, 37, 255]
+
+	style.Colors[ImGuiCol_Header] := [0, 0, 0, 0]
+	style.Colors[ImGuiCol_HeaderActive] := [0, 0, 0, 0]
+	style.Colors[ImGuiCol_HeaderHovered] := [46, 46, 46, 255]
+
     static window_flags := 0
     if (!no_menu)           
         window_flags |= ImGuiWindowFlags_MenuBar

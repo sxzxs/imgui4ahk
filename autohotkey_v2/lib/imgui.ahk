@@ -476,9 +476,6 @@ _ImGui_SetWindowTitleAlign(x := 0.5, y := 0.5)
 *	- "c://xxx.ttf"
 *   - 内存加载
 *		- from_memory_ali
-*		- from_memory_baidu
-*		- from_memory_zkblack
-*		- HuakW7_size
 *		- from_memory_simhei
 * @font_size 字体大小
 * @font_range 字体的范围
@@ -527,6 +524,11 @@ _ImGui_GetStyle()
 {
     result := Dllcall("imgui\GetStyle", "Cdecl Ptr")
     return result
+}
+_ImGui_GetStyle_obj()
+{
+    result := Dllcall("imgui\GetStyle", "Cdecl Ptr")
+	return Imgui_style(result)	
 }
 _ImGui_BeginFrame()
 {
@@ -2403,7 +2405,8 @@ _Imgui_load_font_range_from_string(string, &range_array, &length, &raw_data)
 class Imgui_style
 {
 	ptr := 0
-	__New(ptr) => this.ptr := ptr
+	size := 0
+	__New(ptr) => (this.ptr := ptr, this.size := ptr)
 	Alpha
 	{
 		get => NumGet(this, 0, "float")
@@ -2414,10 +2417,10 @@ class Imgui_style
 		get => NumGet(this, 4, "float")
 		set => NumPut("float", value, this, 4)
 	}
-	WindowPadding[p]
+	WindowPadding
 	{
 		get => [NumGet(this, 8, "float"), NumGet(this, 12, "float")]
-		set => [NumPut("float", p[1], this, 8), NumPut("float", p[2], this, 12)]
+		set => [NumPut("float", value[1], this, 8), NumPut("float", value[2], this, 12)]
 	}
 	WindowRounding
 	{
@@ -2429,15 +2432,15 @@ class Imgui_style
 		get => NumGet(this, 20, "float")
 		set => NumPut("float", value, this, 20)
 	}
-	WindowMinSize[p]
+	WindowMinSize
 	{
 		get => [NumGet(this, 24, "float"), NumGet(this, 28, "float")]
-		set => [NumPut("float", p[1], this, 24), NumPut("float", p[2], this, 28)]
+		set => [NumPut("float", value[1], this, 24), NumPut("float", value[2], this, 28)]
 	}
-	WindowTitleAlign[p]
+	WindowTitleAlign
 	{
 		get => [NumGet(this, 32, "float"), NumGet(this, 36, "float")]
-		set => [NumPut("float", p[1], this, 32), NumPut("float", p[2], this, 36)]
+		set => [NumPut("float", value[1], this, 32), NumPut("float", value[2], this, 36)]
 	}
 	WindowMenuButtonPosition
 	{
@@ -2464,10 +2467,10 @@ class Imgui_style
 		get => NumGet(this, 56, "float")
 		set => NumPut("float", value, this, 56)
 	}
-	FramePadding[p]
+	FramePadding
 	{
 		get => [NumGet(this, 60, "float"), NumGet(this, 64, "float")]
-		set => [NumPut("float", p[1], this, 60), NumPut("float", p[2], this, 64)]
+		set => [NumPut("float", value[1], this, 60), NumPut("float", value[2], this, 64)]
 	}
 	FrameRounding
 	{
@@ -2479,25 +2482,25 @@ class Imgui_style
 		get => NumGet(this, 72, "float")
 		set => NumPut("float", value, this, 72)
 	}
-	ItemSpacing[p]
+	ItemSpacing
 	{
 		get => [NumGet(this, 76, "float"), NumGet(this, 80, "float")]
-		set => [NumPut("float", p[1], this, 76), NumPut("float", p[2], this, 80)]
+		set => [NumPut("float", value[1], this, 76), NumPut("float", value[2], this, 80)]
 	}
-	ItemInnerSpacing[p]
+	ItemInnerSpacing
 	{
 		get => [NumGet(this, 84, "float"), NumGet(this, 88, "float")]
-		set => [NumPut("float", p[1], this, 84), NumPut("float", p[2], this, 88)]
+		set => [NumPut("float", value[1], this, 84), NumPut("float", value[2], this, 88)]
 	}
-	CellPadding[p]
+	CellPadding
 	{
 		get => [NumGet(this, 92, "float"), NumGet(this, 96, "float")]
-		set => [NumPut("float", p[1], this, 92), NumPut("float", p[2], this, 96)]
+		set => [NumPut("float", value[1], this, 92), NumPut("float", value[2], this, 96)]
 	}
-	TouchExtraPadding[p]
+	TouchExtraPadding
 	{
 		get => [NumGet(this, 100, "float"), NumGet(this, 104, "float")]
-		set => [NumPut("float", p[1], this, 100), NumPut("float", p[2], this, 104)]
+		set => [NumPut("float", value[1], this, 100), NumPut("float", value[2], this, 104)]
 	}
 	IndentSpacing
 	{
@@ -2554,25 +2557,25 @@ class Imgui_style
 		get => NumGet(this, 148, "float")
 		set => NumPut("float", value, this, 148)
 	}
-	ButtonTextAlign[p]
+	ButtonTextAlign
 	{
 		get => [NumGet(this, 152, "float"), NumGet(this, 156, "float")]
-		set => [NumPut("float", p[1], this, 152), NumPut("float", p[2], this, 156)]
+		set => [NumPut("float", value[1], this, 152), NumPut("float", value[2], this, 156)]
 	}
-	SelectableTextAlign[p]
+	SelectableTextAlign
 	{
 		get => [NumGet(this, 160, "float"), NumGet(this, 164, "float")]
-		set => [NumPut("float", p[1], this, 160), NumPut("float", p[2], this, 164)]
+		set => [NumPut("float", value[1], this, 160), NumPut("float", value[2], this, 164)]
 	}
-	DisplayWindowPadding[p]
+	DisplayWindowPadding
 	{
 		get => [NumGet(this, 168, "float"), NumGet(this, 172, "float")]
-		set => [NumPut("float", p[1], this, 168), NumPut("float", p[2], this, 172)]
+		set => [NumPut("float", value[1], this, 168), NumPut("float", value[2], this, 172)]
 	}
-	DisplaySafeAreaPadding[p]
+	DisplaySafeAreaPadding
 	{
 		get => [NumGet(this, 176, "float"), NumGet(this, 180, "float")]
-		set => [NumPut("float", p[1], this, 176), NumPut("float", p[2], this, 180)]
+		set => [NumPut("float", value[1], this, 176), NumPut("float", value[2], this, 180)]
 	}
 	MouseCursorScale
 	{
@@ -2610,14 +2613,16 @@ class Imgui_style
 ; Colors[ImGuiCol_Text] := [1, 2, 3, 4]
 	Colors[index]
 	{
+		;sc := 1.0 / 255.0
+		;r := value[1] * sc, g := value[2] * sc, b := value[3] * sc, a := value[4] * sc
 		get => [NumGet(this, 200 + (index - ImGuiCol_Text) * 16, "float"), 
 				NumGet(this, 200 + (index - ImGuiCol_Text) * 16 + 4, "float"), 
 				NumGet(this, 200 + (index - ImGuiCol_Text) * 16 + 8, "float"), 
 				NumGet(this, 200 + (index - ImGuiCol_Text) * 16 + 12, "float")]
-		set => [NumPut("float", p[1], this, 200 + (index - ImGuiCol_Text) * 16), 
-				NumPut("float", p[2], this, 200 + (index - ImGuiCol_Text) * 16 + 4), 
-				NumPut("float", p[3], this, 200 + (index - ImGuiCol_Text) * 16 + 8), 
-				NumPut("float", p[4], this, 200 + (index - ImGuiCol_Text) * 16 + 12)]
+		set => [NumPut("float", value[1] * (1.0 / 255.0), this, 200 + (index - ImGuiCol_Text) * 16), 
+				NumPut("float", value[2] * (1.0 / 255.0), this, 200 + (index - ImGuiCol_Text) * 16 + 4), 
+				NumPut("float", value[3] * (1.0 / 255.0), this, 200 + (index - ImGuiCol_Text) * 16 + 8), 
+				NumPut("float", value[4] * (1.0 / 255.0), this, 200 + (index - ImGuiCol_Text) * 16 + 12)]
 	}
 }
 
