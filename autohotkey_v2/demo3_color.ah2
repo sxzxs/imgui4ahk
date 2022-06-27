@@ -8,7 +8,7 @@ main()
     WinShow(hwnd)
     WinSetAlwaysOnTop( 1,hwnd)
 
-    style := _ImGui_GetStyle_obj()
+    style := _ImGui_GetStyle()
 
 	style.WindowBorderSize := 0
 	style.WindowTitleAlign := [0.5, 0.5]
@@ -42,21 +42,17 @@ main()
     while(_ImGui_PeekMsg())
     {
         _ImGui_BeginFrame()
-        _ImGui_Begin("AHK2", 0, window_flags)
+        _ImGui_Begin("AHK2", 0, window_flags | ImGuiWindowFlags_NoTitleBar)
         ;添加代码 =====================================
+        ;https://github.com/kazhafeizhale/imgui4ahk/blob/master/cpp%20-1.88/icons.h
         _ImGui_Button(Chr(0xf019) ' 下载', 100, 100)
-        _ImGui_Button(Chr(0xf15b) ' 文件', 100, 100)
-        _ImGui_Button("按钮", 100, 100)
-        _ImGui_Button("按钮", 100, 100)
+        _ImGui_Button(Chr(0xf15b) ' 复制', 100, 100)
+        _ImGui_Button(Chr(0xf20a) ' 关闭', 100, 100)
+        _ImGui_Button(Chr(0xf07c) ' 打开', 100, 100)
         ;====================================
         _ImGui_End()
         _ImGui_EndFrame()
     }
     ExitApp()
     return
-}
-CryptStringToBinary(str, flag){
-	DllCall("crypt32\CryptStringToBinaryW", "str", str, "uint", StrLen(str), "uint", flag, "ptr", 0, "uint*", &bytes := 0, "ptr", 0, "ptr", 0)
-	DllCall("crypt32\CryptStringToBinaryW", "str", str, "uint", StrLen(str), "uint", flag, "ptr", bin := Buffer(bytes), "uint*", bytes, "ptr", 0, "ptr", 0)
-	return bin
 }

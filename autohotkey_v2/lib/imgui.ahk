@@ -62,14 +62,14 @@ ImGuiInputTextFlags_CallbackCharFilter  := 1<<9
 ImGuiInputTextFlags_AllowTabInput       := 1<<10
 ImGuiInputTextFlags_CtrlEnterForNewLine := 1<<11
 ImGuiInputTextFlags_NoHorizontalScroll  := 1<<12
-ImGuiInputTextFlags_AlwaysInsertMode    := 1<<13
+ImGuiInputTextFlags_AlwaysOverwrite    := 1<<13
 ImGuiInputTextFlags_ReadOnly            := 1<<14
 ImGuiInputTextFlags_Password            := 1<<15
 ImGuiInputTextFlags_NoUndoRedo          := 1<<16
 ImGuiInputTextFlags_CharsScientific     := 1<<17
 ImGuiInputTextFlags_CallbackResize      := 1<<18
-ImGuiInputTextFlags_Multiline           := 1<<20
-ImGuiInputTextFlags_NoMarkEdited        := 1<<21
+ImGuiInputTextFlags_CallbackEdit        := 1<<19   ; Callback on any edit (note that InputText() already returns true on edit, the callback is useful mainly to manipulate the underlying buffer while focus is active)
+ImGuiInputTextFlags_AlwaysInsertMode    := ImGuiInputTextFlags_AlwaysOverwrite   ; [renamed in 1.82] name was not matching behavior
 
 ImGuiTreeNodeFlags_None                 :=  0
 ImGuiTreeNodeFlags_Selected             := 1<<0
@@ -129,30 +129,42 @@ ImGuiTabBarFlags_FittingPolicyScroll            := 1<<7
 ImGuiTabBarFlags_FittingPolicyMask_             := ImGuiTabBarFlags_FittingPolicyResizeDown |  ImGuiTabBarFlags_FittingPolicyScroll
 ImGuiTabBarFlags_FittingPolicyDefault_          := ImGuiTabBarFlags_FittingPolicyResizeDown
 
-ImGuiTabItemFlags_None                          :=  0
-ImGuiTabItemFlags_UnsavedDocument               := 1<<0
-ImGuiTabItemFlags_SetSelected                   := 1<<1
-ImGuiTabItemFlags_NoCloseWithMiddleMouseButton  := 1<<2
-ImGuiTabItemFlags_NoPushId                      := 1<<3
-ImGuiTabItemFlags_NoTooltip                     := 1<<4
-
-ImGuiFocusedFlags_None                          :=  0
-ImGuiFocusedFlags_ChildWindows                  := 1<<0
-ImGuiFocusedFlags_RootWindow                    := 1<<1
-ImGuiFocusedFlags_AnyWindow                     := 1<<2
-ImGuiFocusedFlags_RootAndChildWindows           := ImGuiFocusedFlags_RootWindow |  ImGuiFocusedFlags_ChildWindows
+ImGuiTabItemFlags_None                          := 0
+ImGuiTabItemFlags_UnsavedDocument               := 1 << 0   ; Display a dot next to the title + tab is selected when clicking the X + closure is not assumed (will wait for user to stop submitting the tab). Otherwise closure is assumed when pressing the X, so if you keep submitting the tab may reappear at end of tab bar.
+ImGuiTabItemFlags_SetSelected                   := 1 << 1   ; Trigger flag to programmatically make the tab selected when calling BeginTabItem()
+ImGuiTabItemFlags_NoCloseWithMiddleMouseButton  := 1 << 2   ; Disable behavior of closing tabs (that are submitted with p_open != NULL) with middle mouse button. You can still repro this behavior on user's side with if (IsItemHovered() && IsMouseClicked(2)) *p_open = false.
+ImGuiTabItemFlags_NoPushId                      := 1 << 3   ; Don't call PushID(tab->ID)/PopID() on BeginTabItem()/EndTabItem()
+ImGuiTabItemFlags_NoTooltip                     := 1 << 4   ; Disable tooltip for the given tab
+ImGuiTabItemFlags_NoReorder                     := 1 << 5   ; Disable reordering this tab or having another tab cross over this tab
+ImGuiTabItemFlags_Leading                       := 1 << 6   ; Enforce the tab position to the left of the tab bar (after the tab list popup button)
+ImGuiTabItemFlags_Trailing                      := 1 << 7   ; Enforce the tab position to the right of the tab bar (before the scrolling buttons)
 
 
-ImGuiHoveredFlags_None                          :=  0
-ImGuiHoveredFlags_ChildWindows                  := 1<<0
-ImGuiHoveredFlags_RootWindow                    := 1<<1
-ImGuiHoveredFlags_AnyWindow                     := 1<<2
-ImGuiHoveredFlags_AllowWhenBlockedByPopup       := 1<<3
-ImGuiHoveredFlags_AllowWhenBlockedByActiveItem  := 1<<5
-ImGuiHoveredFlags_AllowWhenOverlapped           := 1<<6
-ImGuiHoveredFlags_AllowWhenDisabled             := 1<<7
-ImGuiHoveredFlags_RectOnly                      := ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem |  ImGuiHoveredFlags_AllowWhenOverlapped
-ImGuiHoveredFlags_RootAndChildWindows           := ImGuiHoveredFlags_RootWindow |  ImGuiHoveredFlags_ChildWindows
+ImGuiFocusedFlags_None                          := 0
+ImGuiFocusedFlags_ChildWindows                  := 1 << 0   ; Return true if any children of the window is focused
+ImGuiFocusedFlags_RootWindow                    := 1 << 1   ; Test from root window (top most parent of the current hierarchy)
+ImGuiFocusedFlags_AnyWindow                     := 1 << 2   ; Return true if any window is focused. Important: If you are trying to tell how to dispatch your low-level inputs, do NOT use this. Use 'io.WantCaptureMouse' instead! Please read the FAQ!
+ImGuiFocusedFlags_NoPopupHierarchy              := 1 << 3   ; Do not consider popup hierarchy (do not treat popup emitter as parent of popup) (when used with _ChildWindows or _RootWindow)
+ImGuiFocusedFlags_DockHierarchy                 := 1 << 4   ; Consider docking hierarchy (treat dockspace host as parent of docked window) (when used with _ChildWindows or _RootWindow)
+ImGuiFocusedFlags_RootAndChildWindows           := ImGuiFocusedFlags_RootWindow | ImGuiFocusedFlags_ChildWindows
+
+
+
+ImGuiHoveredFlags_None                          := 0        ; Return true if directly over the item/window, not obstructed by another window, not obstructed by an active popup or modal blocking inputs under them.
+ImGuiHoveredFlags_ChildWindows                  := 1 << 0   ; IsWindowHovered() only: Return true if any children of the window is hovered
+ImGuiHoveredFlags_RootWindow                    := 1 << 1   ; IsWindowHovered() only: Test from root window (top most parent of the current hierarchy)
+ImGuiHoveredFlags_AnyWindow                     := 1 << 2   ; IsWindowHovered() only: Return true if any window is hovered
+ImGuiHoveredFlags_NoPopupHierarchy              := 1 << 3   ; IsWindowHovered() only: Do not consider popup hierarchy (do not treat popup emitter as parent of popup) (when used with _ChildWindows or _RootWindow)
+ImGuiHoveredFlags_DockHierarchy                 := 1 << 4   ; IsWindowHovered() only: Consider docking hierarchy (treat dockspace host as parent of docked window) (when used with _ChildWindows or _RootWindow)
+ImGuiHoveredFlags_AllowWhenBlockedByPopup       := 1 << 5   ; Return true even if a popup window is normally blocking access to this item/window
+;ImGuiHoveredFlags_AllowWhenBlockedByModal     := 1 << 6,   ; Return true even if a modal popup window is normally blocking access to this item/window. FIXME-TODO: Unavailable yet.
+ImGuiHoveredFlags_AllowWhenBlockedByActiveItem  := 1 << 7   ; Return true even if an active item is blocking access to this item/window. Useful for Drag and Drop patterns.
+ImGuiHoveredFlags_AllowWhenOverlapped           := 1 << 8   ; IsItemHovered() only: Return true even if the position is obstructed or overlapped by another window
+ImGuiHoveredFlags_AllowWhenDisabled             := 1 << 9   ; IsItemHovered() only: Return true even if the item is disabled
+ImGuiHoveredFlags_NoNavOverride                 := 1 << 10  ; Disable using gamepad/keyboard navigation state when active, always query mouse.
+ImGuiHoveredFlags_RectOnly                      := ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_AllowWhenOverlapped,
+ImGuiHoveredFlags_RootAndChildWindows           := ImGuiHoveredFlags_RootWindow | ImGuiHoveredFlags_ChildWindows
+
 
 
 ImGuiDockNodeFlags_None                         :=  0
@@ -193,34 +205,10 @@ ImGuiDir_Right   :=  1
 ImGuiDir_Up      :=  2
 ImGuiDir_Down    :=  3
 
-ImGuiKey_Tab := 0
-ImGuiKey_LeftArrow := 1
-ImGuiKey_RightArrow := 2
-ImGuiKey_UpArrow := 3
-ImGuiKey_DownArrow := 4
-ImGuiKey_PageUp := 5
-ImGuiKey_PageDown := 6
-ImGuiKey_Home := 7
-ImGuiKey_End := 8
-ImGuiKey_Insert := 9
-ImGuiKey_Delete := 10
-ImGuiKey_Backspace := 11
-ImGuiKey_Space := 12
-ImGuiKey_Enter := 13
-ImGuiKey_Escape := 14
-ImGuiKey_KeyPadEnter := 15
-ImGuiKey_A := 16
-ImGuiKey_C := 17
-ImGuiKey_V := 18
-ImGuiKey_X := 19
-ImGuiKey_Y := 20
-ImGuiKey_Z := 21
 
-ImGuiKeyModFlags_None       :=  0
-ImGuiKeyModFlags_Ctrl       := 1<<0
-ImGuiKeyModFlags_Shift      := 1<<1
-ImGuiKeyModFlags_Alt        := 1<<2
-ImGuiKeyModFlags_Super      := 1<<3
+ImGuiKey_None := 0,
+;Todo
+
 ImGuiNavInput_Activate := 0
 ImGuiNavInput_Cancel := 1
 ImGuiNavInput_Input := 2
@@ -238,13 +226,11 @@ ImGuiNavInput_FocusNext := 13
 ImGuiNavInput_TweakSlow := 14
 ImGuiNavInput_TweakFast := 15
 
-ImGuiNavInput_KeyMenu_ := 16
-ImGuiNavInput_KeyLeft_ := 17
-ImGuiNavInput_KeyRight_ := 18
-ImGuiNavInput_KeyUp_ := 19
-ImGuiNavInput_KeyDown_ := 20
-ImGuiNavInput_COUNT := 21
-ImGuiNavInput_InternalStart_ :=  ImGuiNavInput_KeyMenu_
+ImGuiNavInput_KeyLeft_ := 16
+ImGuiNavInput_KeyRight_ := 17
+ImGuiNavInput_KeyUp_ := 18
+ImGuiNavInput_KeyDown_ := 19
+ImGuiNavInput_COUNT := 20
 
 
 ImGuiConfigFlags_None                   :=  0
@@ -328,29 +314,32 @@ ImGuiCol_NavWindowingDimBg := 53     ; Darken/colorize entire screen behind the 
 ImGuiCol_ModalWindowDimBg := 54      ; Darken/colorize entire screen behind a modal window, when one is active
 
 
-ImGuiStyleVar_Alpha := 0
-ImGuiStyleVar_WindowPadding := 1
-ImGuiStyleVar_WindowRounding := 2
-ImGuiStyleVar_WindowBorderSize := 3
-ImGuiStyleVar_WindowMinSize := 4
-ImGuiStyleVar_WindowTitleAlign := 5
-ImGuiStyleVar_ChildRounding := 6
-ImGuiStyleVar_ChildBorderSize := 7
-ImGuiStyleVar_PopupRounding := 8
-ImGuiStyleVar_PopupBorderSize := 9
-ImGuiStyleVar_FramePadding := 10
-ImGuiStyleVar_FrameRounding := 11
-ImGuiStyleVar_FrameBorderSize := 12
-ImGuiStyleVar_ItemSpacing := 13
-ImGuiStyleVar_ItemInnerSpacing := 14
-ImGuiStyleVar_IndentSpacing := 15
-ImGuiStyleVar_ScrollbarSize := 16
-ImGuiStyleVar_ScrollbarRounding := 17
-ImGuiStyleVar_GrabMinSize := 18
-ImGuiStyleVar_GrabRounding := 19
-ImGuiStyleVar_TabRounding := 20
-ImGuiStyleVar_ButtonTextAlign := 21
-ImGuiStyleVar_SelectableTextAlign := 22
+ImGuiStyleVar_Alpha := 0               ; float     Alpha
+ImGuiStyleVar_DisabledAlpha := 1       ; float     DisabledAlpha
+ImGuiStyleVar_WindowPadding := 2       ; ImVec2    WindowPadding
+ImGuiStyleVar_WindowRounding := 3      ; float     WindowRounding
+ImGuiStyleVar_WindowBorderSize := 4    ; float     WindowBorderSize
+ImGuiStyleVar_WindowMinSize := 5       ; ImVec2    WindowMinSize
+ImGuiStyleVar_WindowTitleAlign := 6    ; ImVec2    WindowTitleAlign
+ImGuiStyleVar_ChildRounding := 7       ; float     ChildRounding
+ImGuiStyleVar_ChildBorderSize := 8     ; float     ChildBorderSize
+ImGuiStyleVar_PopupRounding := 9       ; float     PopupRounding
+ImGuiStyleVar_PopupBorderSize := 10     ; float     PopupBorderSize
+ImGuiStyleVar_FramePadding := 11        ; ImVec2    FramePadding
+ImGuiStyleVar_FrameRounding := 12       ; float     FrameRounding
+ImGuiStyleVar_FrameBorderSize := 13     ; float     FrameBorderSize
+ImGuiStyleVar_ItemSpacing := 14         ; ImVec2    ItemSpacing
+ImGuiStyleVar_ItemInnerSpacing := 15    ; ImVec2    ItemInnerSpacing
+ImGuiStyleVar_IndentSpacing := 16       ; float     IndentSpacing
+ImGuiStyleVar_CellPadding := 17         ; ImVec2    CellPadding
+ImGuiStyleVar_ScrollbarSize := 18       ; float     ScrollbarSize
+ImGuiStyleVar_ScrollbarRounding := 19   ; float     ScrollbarRounding
+ImGuiStyleVar_GrabMinSize := 20         ; float     GrabMinSize
+ImGuiStyleVar_GrabRounding := 21        ; float     GrabRounding
+ImGuiStyleVar_TabRounding := 22         ; float     TabRounding
+ImGuiStyleVar_ButtonTextAlign := 23     ; ImVec2    ButtonTextAlign
+ImGuiStyleVar_SelectableTextAlign := 24 ; ImVec2    SelectableTextAlign
+ImGuiStyleVar_COUNT := 25
 
 ImGuiColorEditFlags_None            :=  0
 ImGuiColorEditFlags_NoAlpha         := 1<<1
@@ -390,14 +379,14 @@ ImGuiMouseButton_COUNT :=  5
 
 ImGuiMouseCursor_None :=  -1
 ImGuiMouseCursor_Arrow :=  0
-ImGuiMouseCursor_TextInput := 0
-ImGuiMouseCursor_ResizeAll := 1
-ImGuiMouseCursor_ResizeNS := 2
-ImGuiMouseCursor_ResizeEW := 3
-ImGuiMouseCursor_ResizeNESW := 4
-ImGuiMouseCursor_ResizeNWSE := 5
-ImGuiMouseCursor_Hand := 6
-ImGuiMouseCursor_NotAllowed := 7
+ImGuiMouseCursor_TextInput := 1
+ImGuiMouseCursor_ResizeAll := 2
+ImGuiMouseCursor_ResizeNS := 3
+ImGuiMouseCursor_ResizeEW := 4
+ImGuiMouseCursor_ResizeNESW := 5
+ImGuiMouseCursor_ResizeNWSE := 6
+ImGuiMouseCursor_Hand := 7
+ImGuiMouseCursor_NotAllowed := 8
 
 
 ImGuiCond_None          :=  0
@@ -408,20 +397,21 @@ ImGuiCond_Appearing     := 1<<3
 
 
 ImDrawCornerFlags_None      :=  0
-ImDrawCornerFlags_TopLeft   := 1<<0
-ImDrawCornerFlags_TopRight  := 1<<1
-ImDrawCornerFlags_BotLeft   := 1<<2
-ImDrawCornerFlags_BotRight  := 1<<3
+ImDrawCornerFlags_TopLeft   := 16
+ImDrawCornerFlags_TopRight  := 32
+ImDrawCornerFlags_BotLeft   := 64
+ImDrawCornerFlags_BotRight  := 128
+ImDrawCornerFlags_All := 240
 ImDrawCornerFlags_Top       := ImDrawCornerFlags_TopLeft |  ImDrawCornerFlags_TopRight
 ImDrawCornerFlags_Bot       := ImDrawCornerFlags_BotLeft |  ImDrawCornerFlags_BotRight
 ImDrawCornerFlags_Left      := ImDrawCornerFlags_TopLeft |  ImDrawCornerFlags_BotLeft
 ImDrawCornerFlags_Right     := ImDrawCornerFlags_TopRight |  ImDrawCornerFlags_BotRight
-ImDrawCornerFlags_All       :=  0xF
 
 ImDrawListFlags_None             :=  0
 ImDrawListFlags_AntiAliasedLines := 1<<0
-ImDrawListFlags_AntiAliasedFill  := 1<<1
-ImDrawListFlags_AllowVtxOffset   := 1<<2
+ImDrawListFlags_AntiAliasedLinesUseTex  := 1 << 1  ; Enable anti-aliased lines/borders using textures when possible. Require backend to render with bilinear filtering (NOT point/nearest filtering).
+ImDrawListFlags_AntiAliasedFill  := 1<<2
+ImDrawListFlags_AllowVtxOffset   := 1<<3
 
 _ImGui_Load_dll()
 {
@@ -521,11 +511,6 @@ _ImGui_GetIO()
 }
 
 _ImGui_GetStyle()
-{
-    result := Dllcall("imgui\GetStyle", "Cdecl Ptr")
-    return result
-}
-_ImGui_GetStyle_obj()
 {
     result := Dllcall("imgui\GetStyle", "Cdecl Ptr")
 	return Imgui_style(result)	
