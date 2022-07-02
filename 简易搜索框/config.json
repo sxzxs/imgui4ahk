@@ -1,0 +1,7 @@
+﻿{
+    "网站": {
+        "baidu": "run('www.baidu.com')",
+        "google": "run('www.googole.com')",
+        "ahk":"run('www.autoahk.com')"
+        }
+}

@@ -37,7 +37,7 @@ main()
     _ImGui_SetWindowTitleAlign(0.5, 0.5)
     _ImGui_EnableDocking(True)
 
-    style := _ImGui_GetStyle_obj()
+    style := _ImGui_GetStyle()
 	style.Colors[ImGuiCol_TitleBg] := [255, 101, 53, 255]
 	style.Colors[ImGuiCol_TitleBgActive] := [255, 101, 53, 255]
 	style.Colors[ImGuiCol_TitleBgCollapsed] := [0, 0, 0, 130]
