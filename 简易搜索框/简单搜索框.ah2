@@ -1,14 +1,11 @@
 #include <log>
 #include <imgui>
 #include <py>
+#include <TextRender>
 
 run_as_admin()
 _ImGui_EnableViewports(true)
 logger.is_log_open := true
-
-ToolTip("F3 显示搜索框， ESC 隐藏")
-Sleep(1000)
-ToolTip()
 
 ;全局变量
 g_json_path := A_ScriptDir . "/config.json"
@@ -19,6 +16,9 @@ g_current_path := ''
 g_dymanic_current_path := ''
 g_current_text := ''
 g_clearn_text_value_flag := false
+g_text_rendor := TextRender()
+
+g_text_rendor.Render('F3 显示搜索框， ESC 隐藏')
 
 ;加载配置文件
 g_config := Map()
@@ -30,8 +30,8 @@ logger.info(all_leaf_path)
 
 ;注册热键
 Hotkey("~*$f3", show_hide_wind) ;显示界面
-HotIfWinExist('ahk_class ImGui Platform')
 Hotkey("~*$esc", hide_wind) 
+HotIfWinExist('ahk_class ImGui Platform')
 Hotkey("~$tab", change_choose_number) 
 Hotkey("~$+tab", change_choose_number)
 Hotkey("~$up", change_choose_number)
@@ -50,6 +50,7 @@ main()
     WinShow(hwnd)
     WinSetAlwaysOnTop( 1,hwnd)
     _ImGui_StyleColorsClassic()
+	set_type()
     io := _ImGui_GetIO()
     _ImGui_SetWindowTitleAlign(0.5, 0.5)
     _ImGui_EnableDocking(false)
@@ -65,7 +66,8 @@ main()
 		static text_value := ''
 		static text_value_before := text_value
 		_ImGui_SetNextItemWidth(500)
-		_ImGui_InputText(Chr(0xf002) "##search_box" , &text_value)
+		;_ImGui_InputText(Chr(0xf002) "##search_box" , &text_value)
+		_ImGui_InputText('##search_box' , &text_value)
 		if(g_clearn_text_value_flag)
 			text_value := '', g_clearn_text_value_flag := false
 		if(text_value_before != text_value)
@@ -82,7 +84,11 @@ main()
 		{
 			if(A_Index == g_current_choose_number)
             	_ImGui_PushStyleColor(ImGuiCol_Text, "0xff7020d2")
-			_ImGui_Text(g_filter_leaf_path[A_Index])
+			try
+			{
+				_ImGui_Text(g_filter_leaf_path[A_Index])
+			}
+         	g_text_rendor.Render(get_selet_text())
 			if(A_Index == g_current_choose_number)
                 _ImGui_PopStyleColor(1)
 		}
@@ -109,9 +115,12 @@ hide_wind(*)
 	global g_is_show
 	global g_filter_leaf_path
 	global g_clearn_text_value_flag
+	global g_current_choose_number
+	g_current_choose_number := 1
 	g_is_show := false
 	g_filter_leaf_path := []
 	g_clearn_text_value_flag := true
+	g_text_rendor.Render('')
 	try
 		WinHide("ahk_class ImGui Platform")
 }
@@ -140,14 +149,26 @@ change_choose_number(key*)
 		g_current_choose_number := g_filter_leaf_path.Length
 }
 
+get_selet_text()
+{
+	if(!(g_filter_leaf_path.Length > 0))
+		return
+	run_code := ''
+	try
+	{
+		word_array := StrSplit(g_filter_leaf_path[g_current_choose_number], A_Space, ".")
+		run_code := g_config
+		for k,v in word_array
+			run_code := run_code[v]
+	}
+	return run_code
+}
+
 choose_select(*)
 {
 	if(!(g_filter_leaf_path.Length > 0))
 		return
-	word_array := StrSplit(g_filter_leaf_path[g_current_choose_number], A_Space, ".")
-	run_code := g_config
-	for k,v in word_array
-		run_code := run_code[v]
+	run_code := get_selet_text()
 	ExecScript(run_code, "",A_ScriptDir "\AutoHotkey.exe")
 	hide_wind()
 }
@@ -277,4 +298,35 @@ is_py_match(haystack, needle)
 		}	
 	}
 	return findSign
+}
+
+
+set_type()
+{
+    style := _ImGui_GetStyle()
+
+	style.WindowBorderSize := 0
+	style.WindowTitleAlign := [0.5, 0.5]
+	style.WindowMinSize := [500, 430]
+	style.FramePadding := [8, 6]
+
+	style.Colors[ImGuiCol_TitleBg] := [255, 101, 53, 255]
+	style.Colors[ImGuiCol_TitleBgActive] := [255, 101, 53, 255]
+	style.Colors[ImGuiCol_TitleBgCollapsed] := [0, 0, 0, 130]
+
+	style.Colors[ImGuiCol_Button] := [31, 30, 31, 255]
+	style.Colors[ImGuiCol_ButtonActive] := [41, 40, 41, 255]
+	style.Colors[ImGuiCol_ButtonHovered] := [41, 40, 41, 255]
+
+	style.Colors[ImGuiCol_Separator] := [70, 70, 70, 255]
+	style.Colors[ImGuiCol_SeparatorActive] := [76, 76, 76, 255]
+	style.Colors[ImGuiCol_SeparatorHovered] := [76, 76, 76, 255]
+
+	style.Colors[ImGuiCol_FrameBg] := [37, 36, 37, 255]
+	style.Colors[ImGuiCol_FrameBgActive] := [37, 36, 37, 255]
+	style.Colors[ImGuiCol_FrameBgHovered] := [37, 36, 37, 255]
+
+	style.Colors[ImGuiCol_Header] := [0, 0, 0, 0]
+	style.Colors[ImGuiCol_HeaderActive] := [0, 0, 0, 0]
+	style.Colors[ImGuiCol_HeaderHovered] := [46, 46, 46, 255]
 }
