@@ -326,3 +326,56 @@ myexit()
         logger.out()
     }
 }
+
+/*
+extern "C" _declspec(dllexport) void screenshot_to_mat(cv::Mat *ptr) 
+{
+	HDC hwindowDC, hwindowCompatibleDC;
+
+	int height = 0, width = 0, srcheight = 0, srcwidth = 0;
+	HBITMAP hbwindow{};
+	BITMAPINFOHEADER  bi{};
+
+	hwindowDC = GetDC(NULL);
+	hwindowCompatibleDC = CreateCompatibleDC(hwindowDC);
+	SetStretchBltMode(hwindowCompatibleDC, COLORONCOLOR);
+
+	int nScreenWidth = GetSystemMetrics(SM_CXSCREEN);
+	int nScreenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+	srcheight = nScreenHeight;
+	srcwidth = nScreenWidth;
+	height = nScreenHeight;  //change this to whatever size you want to resize to
+	width = nScreenWidth;
+	//height = nScreenHeight / 2;  //change this to whatever size you want to resize to
+	//width = nScreenWidth / 2;
+
+	// create a bitmap
+	hbwindow = CreateCompatibleBitmap(hwindowDC, width, height);
+	bi.biSize = sizeof(BITMAPINFOHEADER);    //http://msdn.microsoft.com/en-us/library/windows/window/dd183402%28v=vs.85%29.aspx
+	bi.biWidth = width;
+	bi.biHeight = -height;  //this is the line that makes it draw upside down or not
+	bi.biPlanes = 1;
+	bi.biBitCount = 32;
+	bi.biCompression = BI_RGB;
+	bi.biSizeImage = 0;
+	bi.biXPelsPerMeter = 0;
+	bi.biYPelsPerMeter = 0;
+	bi.biClrUsed = 0;
+	bi.biClrImportant = 0;
+
+	// use the previously created device context with the bitmap
+	SelectObject(hwindowCompatibleDC, hbwindow);
+	// copy from the window device context to the bitmap device context
+	StretchBlt(hwindowCompatibleDC, 0, 0, width, height, hwindowDC, 0, 0, srcwidth, srcheight, SRCCOPY); //change SRCCOPY to NOTSRCCOPY for wacky colors !
+	GetDIBits(hwindowCompatibleDC, hbwindow, 0, height, ptr->data, (BITMAPINFO *)&bi, DIB_RGB_COLORS);  //copy from hwindowCompatibleDC to hbwindow
+
+	//OpenClipboard(NULL);
+	//EmptyClipboard();
+	//SetClipboardData(CF_BITMAP, hbwindow);
+	//CloseClipboard();
+	// avoid memory leak
+	DeleteObject(hbwindow); DeleteDC(hwindowCompatibleDC); ReleaseDC(NULL, hwindowDC);
+}
+
+*/

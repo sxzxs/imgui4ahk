@@ -30,7 +30,8 @@ main()
     _ImGui_StyleColorsDark()
 
     io := _ImGui_GetIO()
-    frame := NumGet(io, 216, "float")
+    struct_io := Imgui_io(io)
+    ;frame := NumGet(io, 216, "float")
     ;NumPut("Int", true, io, 204) ;io.ConfigWindowsMoveFromTitleBarOnly := True ; // Only drag window by title bar
     
 
@@ -143,8 +144,7 @@ main()
             hidewind()
         _ImGui_PopStyleColor(1)
 
-        frame := NumGet(io, 216, "float")
-        _ImGui_Text(frame)
+        _ImGui_Text(struct_io.Framerate)
         win_size := _ImGui_GetWindowSize()
         _ImGui_Separator()
         ;img := _ImGui_ImageFromURL("https://www.autoahk.com/wp-content/themes/b2/Assets/fontend/images/model-bg.png")

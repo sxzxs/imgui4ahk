@@ -187,9 +187,9 @@ main()
                             else
                             {
                                 if(g_now_hero.Has(j))
-                                    _ImGui_PushStyleColor(ImGuiCol_Button, "0xff0a3f27")
-                                else
                                     _ImGui_PushStyleColor(ImGuiCol_Button, "0xff130960")
+                                else
+                                    _ImGui_PushStyleColor(ImGuiCol_Button, "0xff0a3f27")
                             }
                             if(_ImGui_Button(j '##' k j))
                             {
