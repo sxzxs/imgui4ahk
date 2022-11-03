@@ -1187,15 +1187,15 @@ _ImGui_DragFloat(label, &v, v_speed := 1, v_min := 0, v_max := 0, format := "%3.
 }
 _ImGui_DragFloat2(label, v, v_speed := 1, v_min := 0, v_max := 0, format := "%.3f", power := 1)
 {
-	Return ___ImGui_DragFloatN(2, label, v, v_speed, v_min, v_max, format, power)
+	Return ___ImGui_DragFloatN(2, label, &v, v_speed, v_min, v_max, format, power)
 }
 _ImGui_DragFloat3(label, v, v_speed := 1, v_min := 0, v_max := 0, format := "%.3f", power := 1)
 {
-	Return ___ImGui_DragFloatN(3, label, v, v_speed, v_min, v_max, format, power)
+	Return ___ImGui_DragFloatN(3, label, &v, v_speed, v_min, v_max, format, power)
 }
 _ImGui_DragFloat4(label, v, v_speed := 1, v_min := 0, v_max := 0, format := "%.3f", power := 1)
 {
-	Return ___ImGui_DragFloatN(4, label, v, v_speed, v_min, v_max, format, power)
+	Return ___ImGui_DragFloatN(4, label, &v, v_speed, v_min, v_max, format, power)
 }
 
 ___ImGui_DragFloatN(n, label, &v, v_speed, v_min, v_max, format, power)
@@ -1243,15 +1243,15 @@ _ImGui_DragInt(label, &v, v_speed := 1, v_min := 0, v_max := 0, format := "%d")
 }
  _ImGui_DragInt2(label, &v, v_speed := 1, v_min := 0, v_max := 0, format :="%d")
  {
-	___ImGui_DragIntN(2, label, v, v_speed, v_min, v_max, format)
+	___ImGui_DragIntN(2, label, &v, v_speed, v_min, v_max, format)
 }
 _ImGui_DragInt3(label, &v, v_speed := 1, v_min := 0, v_max := 0, format :="%d")
 {
-	___ImGui_DragIntN(3, label, v, v_speed, v_min, v_max, format)
+	___ImGui_DragIntN(3, label, &v, v_speed, v_min, v_max, format)
 }
 _ImGui_DragInt4(label, &v, v_speed := 1, v_min := 0, v_max := 0, format :="%d")
 {
-	___ImGui_DragIntN(4, label, v, v_speed, v_min, v_max, format)
+	___ImGui_DragIntN(4, label, &v, v_speed, v_min, v_max, format)
 }
 ___ImGui_DragIntN(n, label, &v, v_speed, v_min, v_max, format)
 {
@@ -1298,15 +1298,15 @@ _ImGui_SliderFloat(text, &value, v_min, v_max, format := "%.3f", power := 1)
 
 _ImGui_SliderFloat2(label, &v, v_min, v_max, format := "%.3f", power := 1)
 {
-	___ImGui_SliderFloatN(2, label, v, v_min, v_max, format, power)
+	___ImGui_SliderFloatN(2, label, &v, v_min, v_max, format, power)
 }
 _ImGui_SliderFloat3(label, &v, v_min, v_max, format := "%.3f", power := 1)
 {
-	___ImGui_SliderFloatN(3, label, v, v_min, v_max, format, power)
+	___ImGui_SliderFloatN(3, label, &v, v_min, v_max, format, power)
 }
 _ImGui_SliderFloat4(label, &v, v_min, v_max, format := "%.3f", power := 1)
 {
-	___ImGui_SliderFloatN(4, label, v, v_min, v_max, format, power)
+	___ImGui_SliderFloatN(4, label, &v, v_min, v_max, format, power)
 }
 
 ___ImGui_SliderFloatN(n, label, &v, v_min, v_max, format, power)
@@ -1436,15 +1436,15 @@ _ImGui_InputFloat(label, &v, step := 0, step_fast := 0, format := "%.3f", flags 
 
 _ImGui_InputFloat2(label, &v, format := "%.3f", flags := 0)
 {
-	___ImGui_InputFloatN(2, label, v, format, flags)
+	___ImGui_InputFloatN(2, label, &v, format, flags)
 }
 _ImGui_InputFloat3(label, &v, format := "%.3f", flags := 0)
 {
-	___ImGui_InputFloatN(3, label, v, format, flags)
+	___ImGui_InputFloatN(3, label, &v, format, flags)
 }
 _ImGui_InputFloat4(label, &v, format := "%.3f", flags := 0)
 {
-	___ImGui_InputFloatN(4, label, v, format, flags)
+	___ImGui_InputFloatN(4, label, &v, format, flags)
 }
 ___ImGui_InputFloatN(n, label, &v, format, flags)
 {
@@ -1477,15 +1477,15 @@ _ImGui_InputInt(label, &v, step := 1, step_fast := 100, flags := 0)
 
 _ImGui_InputInt2(label, &v, flags := 0)
 {
-	___ImGui_InputIntN(2, label, v, flags := 0)
+	___ImGui_InputIntN(2, label, &v, flags := 0)
 }
 _ImGui_InputInt3(label, &v, flags := 0)
 {
-	___ImGui_InputIntN(3, label, v, flags := 0)
+	___ImGui_InputIntN(3, label, &v, flags := 0)
 }
 _ImGui_InputInt4(label, &v, flags := 0)
 {
-	___ImGui_InputIntN(4, label, v, flags)
+	___ImGui_InputIntN(4, label, &v, flags)
 }
 
 ___ImGui_InputIntN(n, label, &v, flags)

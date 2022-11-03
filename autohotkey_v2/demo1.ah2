@@ -20,12 +20,14 @@ main()
     img := _ImGui_ImageFromURL("https://www.autoahk.com/wp-content/themes/b2/Assets/fontend/images/model-bg.png")
     arr := [1,2,3,4,5,6]
 
-    hwnd := _ImGui_GUICreate("AHK ImGui", 1, 1, -100, -100, 0, 0x80, "from_memory_ali")
+    ;hwnd := _ImGui_GUICreate("AHK ImGui", 1, 1, -100, -100, 0, 0x80, "from_memory_ali")
+    hwnd := _ImGui_GUICreate("AHK ImGui", 1, 1, -100, -100, 0, 0x80)
 
     ;hwnd := _ImGui_GUICreate("AHK ImGui", 1000, 1000, 500, 500, 0, 0x80)
     ;hwnd := _ImGui_GUICreate("AHK ImGui", 1000, 1000, 500, 500)
     WinShow(hwnd)
     WinSetAlwaysOnTop( 1,hwnd)
+    WinHide(hwnd)
 
     _ImGui_StyleColorsDark()
 
@@ -39,9 +41,29 @@ main()
     _ImGui_EnableDocking(True)
 
     style := _ImGui_GetStyle()
-	style.Colors[ImGuiCol_TitleBg] := [255, 101, 53, 255]
-	style.Colors[ImGuiCol_TitleBgActive] := [255, 101, 53, 255]
-	style.Colors[ImGuiCol_TitleBgCollapsed] := [0, 0, 0, 130]
+
+    style.TabBorderSize := 1.0
+    style.FrameBorderSize := 1.0
+
+    style.WindowRounding := 6
+    style.ChildRounding := 6
+    style.FrameRounding := 6
+    style.PopupRounding := 6
+    style.ScrollbarRounding := 6
+    style.ScrollbarRounding := 6
+    style.GrabRounding := 6
+    style.LogSliderDeadzone := 6
+    style.TabRounding := 6
+
+	style.Colors[ImGuiCol_TitleBg] := [14, 4, 1, 255]
+	style.Colors[ImGuiCol_TitleBgActive] := [17, 5, 1, 255]
+	style.Colors[ImGuiCol_TitleBgCollapsed] := [0, 0, 130, 0]
+
+
+    style.Colors[ImGuiCol_Tab] := [0, 0, 0, 255]
+    style.Colors[ImGuiCol_TabHovered] := [40, 213, 204, 255]
+    style.Colors[ImGuiCol_TabActive] := [19, 123, 49, 255]
+
 
 	style.Colors[ImGuiCol_Button] := [31, 30, 31, 255]
 	style.Colors[ImGuiCol_ButtonActive] := [41, 40, 41, 255]
@@ -65,8 +87,8 @@ main()
     
     static back_img_id := _ImGui_ImageFromFile(A_ScriptDir "\image\back.PNG")
 
-    logger.info(DllCall("GetCurrentProcessId"))
-    logger.info(GetProcessMemoryUsage(DllCall("GetCurrentProcessId")))
+    ;logger.info(DllCall("GetCurrentProcessId"))
+    ;logger.info(GetProcessMemoryUsage(DllCall("GetCurrentProcessId")))
 
     while(_ImGui_PeekMsg())
     {

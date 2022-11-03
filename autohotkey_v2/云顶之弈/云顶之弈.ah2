@@ -64,6 +64,7 @@ main()
     hwnd := _ImGui_GUICreate("AHK ImGui", 1, 1, -100, -100, 0, 0x80, 'from_memory_simhei', 18, , raw_data)
 
     WinSetAlwaysOnTop( 1,hwnd)
+    WinHide(hwnd)
     _ImGui_StyleColorsDark()
     io := _ImGui_GetIO()
     _ImGui_SetWindowTitleAlign(0.1, 0.1)

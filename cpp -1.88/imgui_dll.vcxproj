@@ -156,7 +156,7 @@
       <AdditionalIncludeDirectories>..\..;..;%(AdditionalIncludeDirectories);$(DXSDK_DIR)Include;</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <OmitFramePointers>false</OmitFramePointers>
-      <AdditionalOptions>/d1reportSingleClassLayoutImGuiIO  /d1reportSingleClassLayoutImGuiStyle %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/d1reportSingleClassLayoutImGuiIO  /d1reportSingleClassLayoutImGuiIO %(AdditionalOptions)</AdditionalOptions>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <GenerateSourceDependencies>true</GenerateSourceDependencies>
     </ClCompile>

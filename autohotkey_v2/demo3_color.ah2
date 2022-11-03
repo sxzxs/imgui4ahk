@@ -4,8 +4,9 @@ main()
 main()
 {
     static no_menu := false
-    hwnd := _ImGui_GUICreate("AHK ImGui", 1, 1, -100, -100, 0, 0x80)
-    WinShow(hwnd)
+    hwnd := _ImGui_GUICreate("AHK ImGui", 0, 0, 100, 100, 0, 0x80)
+    ;WinShow(hwnd)
+    WinHide(hwnd)
     WinSetAlwaysOnTop( 1,hwnd)
 
     style := _ImGui_GetStyle()
@@ -52,6 +53,7 @@ main()
         ;====================================
         _ImGui_End()
         _ImGui_EndFrame()
+        sleep(10)
     }
     ExitApp()
     return
