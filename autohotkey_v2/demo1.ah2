@@ -189,6 +189,7 @@ main()
 
         static b_pick_color := false
         _ImGui_CheckBox("color pick", &b_pick_color)
+        _Imgui_toggle_button("toggle color pick", &b_pick_color)
 
         if(b_pick_color)
         {
@@ -305,7 +306,8 @@ hidewind(*)
 }
 showwind(*)
 {
-    WinShow("ahk_class ImGui Platform")
+    ;WinShow("ahk_class ImGui Platform")
+    WinShow("AHK2")
 }
 
 ;获取制定进程内存

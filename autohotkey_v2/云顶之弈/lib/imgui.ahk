@@ -1,6 +1,8 @@
 ﻿;by ahker, 2397633100@qq.com
 ;https://gitee.com/kazhafeizhale/imgui4ahk
 ;https://github.com/thedemons/imgui-autoit
+;dx修复工具
+;https://pan.baidu.com/s/1cvOX239c03QIxh8EGFfqfQ?pwd=5tsw 
 ;32位编译器：
 ;char      short      int      long      float      double      指针
 ;1            2        4         4       4              8         4
@@ -60,14 +62,14 @@ ImGuiInputTextFlags_CallbackCharFilter  := 1<<9
 ImGuiInputTextFlags_AllowTabInput       := 1<<10
 ImGuiInputTextFlags_CtrlEnterForNewLine := 1<<11
 ImGuiInputTextFlags_NoHorizontalScroll  := 1<<12
-ImGuiInputTextFlags_AlwaysInsertMode    := 1<<13
+ImGuiInputTextFlags_AlwaysOverwrite    := 1<<13
 ImGuiInputTextFlags_ReadOnly            := 1<<14
 ImGuiInputTextFlags_Password            := 1<<15
 ImGuiInputTextFlags_NoUndoRedo          := 1<<16
 ImGuiInputTextFlags_CharsScientific     := 1<<17
 ImGuiInputTextFlags_CallbackResize      := 1<<18
-ImGuiInputTextFlags_Multiline           := 1<<20
-ImGuiInputTextFlags_NoMarkEdited        := 1<<21
+ImGuiInputTextFlags_CallbackEdit        := 1<<19   ; Callback on any edit (note that InputText() already returns true on edit, the callback is useful mainly to manipulate the underlying buffer while focus is active)
+ImGuiInputTextFlags_AlwaysInsertMode    := ImGuiInputTextFlags_AlwaysOverwrite   ; [renamed in 1.82] name was not matching behavior
 
 ImGuiTreeNodeFlags_None                 :=  0
 ImGuiTreeNodeFlags_Selected             := 1<<0
@@ -127,30 +129,42 @@ ImGuiTabBarFlags_FittingPolicyScroll            := 1<<7
 ImGuiTabBarFlags_FittingPolicyMask_             := ImGuiTabBarFlags_FittingPolicyResizeDown |  ImGuiTabBarFlags_FittingPolicyScroll
 ImGuiTabBarFlags_FittingPolicyDefault_          := ImGuiTabBarFlags_FittingPolicyResizeDown
 
-ImGuiTabItemFlags_None                          :=  0
-ImGuiTabItemFlags_UnsavedDocument               := 1<<0
-ImGuiTabItemFlags_SetSelected                   := 1<<1
-ImGuiTabItemFlags_NoCloseWithMiddleMouseButton  := 1<<2
-ImGuiTabItemFlags_NoPushId                      := 1<<3
-ImGuiTabItemFlags_NoTooltip                     := 1<<4
-
-ImGuiFocusedFlags_None                          :=  0
-ImGuiFocusedFlags_ChildWindows                  := 1<<0
-ImGuiFocusedFlags_RootWindow                    := 1<<1
-ImGuiFocusedFlags_AnyWindow                     := 1<<2
-ImGuiFocusedFlags_RootAndChildWindows           := ImGuiFocusedFlags_RootWindow |  ImGuiFocusedFlags_ChildWindows
+ImGuiTabItemFlags_None                          := 0
+ImGuiTabItemFlags_UnsavedDocument               := 1 << 0   ; Display a dot next to the title + tab is selected when clicking the X + closure is not assumed (will wait for user to stop submitting the tab). Otherwise closure is assumed when pressing the X, so if you keep submitting the tab may reappear at end of tab bar.
+ImGuiTabItemFlags_SetSelected                   := 1 << 1   ; Trigger flag to programmatically make the tab selected when calling BeginTabItem()
+ImGuiTabItemFlags_NoCloseWithMiddleMouseButton  := 1 << 2   ; Disable behavior of closing tabs (that are submitted with p_open != NULL) with middle mouse button. You can still repro this behavior on user's side with if (IsItemHovered() && IsMouseClicked(2)) *p_open = false.
+ImGuiTabItemFlags_NoPushId                      := 1 << 3   ; Don't call PushID(tab->ID)/PopID() on BeginTabItem()/EndTabItem()
+ImGuiTabItemFlags_NoTooltip                     := 1 << 4   ; Disable tooltip for the given tab
+ImGuiTabItemFlags_NoReorder                     := 1 << 5   ; Disable reordering this tab or having another tab cross over this tab
+ImGuiTabItemFlags_Leading                       := 1 << 6   ; Enforce the tab position to the left of the tab bar (after the tab list popup button)
+ImGuiTabItemFlags_Trailing                      := 1 << 7   ; Enforce the tab position to the right of the tab bar (before the scrolling buttons)
 
 
-ImGuiHoveredFlags_None                          :=  0
-ImGuiHoveredFlags_ChildWindows                  := 1<<0
-ImGuiHoveredFlags_RootWindow                    := 1<<1
-ImGuiHoveredFlags_AnyWindow                     := 1<<2
-ImGuiHoveredFlags_AllowWhenBlockedByPopup       := 1<<3
-ImGuiHoveredFlags_AllowWhenBlockedByActiveItem  := 1<<5
-ImGuiHoveredFlags_AllowWhenOverlapped           := 1<<6
-ImGuiHoveredFlags_AllowWhenDisabled             := 1<<7
-ImGuiHoveredFlags_RectOnly                      := ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem |  ImGuiHoveredFlags_AllowWhenOverlapped
-ImGuiHoveredFlags_RootAndChildWindows           := ImGuiHoveredFlags_RootWindow |  ImGuiHoveredFlags_ChildWindows
+ImGuiFocusedFlags_None                          := 0
+ImGuiFocusedFlags_ChildWindows                  := 1 << 0   ; Return true if any children of the window is focused
+ImGuiFocusedFlags_RootWindow                    := 1 << 1   ; Test from root window (top most parent of the current hierarchy)
+ImGuiFocusedFlags_AnyWindow                     := 1 << 2   ; Return true if any window is focused. Important: If you are trying to tell how to dispatch your low-level inputs, do NOT use this. Use 'io.WantCaptureMouse' instead! Please read the FAQ!
+ImGuiFocusedFlags_NoPopupHierarchy              := 1 << 3   ; Do not consider popup hierarchy (do not treat popup emitter as parent of popup) (when used with _ChildWindows or _RootWindow)
+ImGuiFocusedFlags_DockHierarchy                 := 1 << 4   ; Consider docking hierarchy (treat dockspace host as parent of docked window) (when used with _ChildWindows or _RootWindow)
+ImGuiFocusedFlags_RootAndChildWindows           := ImGuiFocusedFlags_RootWindow | ImGuiFocusedFlags_ChildWindows
+
+
+
+ImGuiHoveredFlags_None                          := 0        ; Return true if directly over the item/window, not obstructed by another window, not obstructed by an active popup or modal blocking inputs under them.
+ImGuiHoveredFlags_ChildWindows                  := 1 << 0   ; IsWindowHovered() only: Return true if any children of the window is hovered
+ImGuiHoveredFlags_RootWindow                    := 1 << 1   ; IsWindowHovered() only: Test from root window (top most parent of the current hierarchy)
+ImGuiHoveredFlags_AnyWindow                     := 1 << 2   ; IsWindowHovered() only: Return true if any window is hovered
+ImGuiHoveredFlags_NoPopupHierarchy              := 1 << 3   ; IsWindowHovered() only: Do not consider popup hierarchy (do not treat popup emitter as parent of popup) (when used with _ChildWindows or _RootWindow)
+ImGuiHoveredFlags_DockHierarchy                 := 1 << 4   ; IsWindowHovered() only: Consider docking hierarchy (treat dockspace host as parent of docked window) (when used with _ChildWindows or _RootWindow)
+ImGuiHoveredFlags_AllowWhenBlockedByPopup       := 1 << 5   ; Return true even if a popup window is normally blocking access to this item/window
+;ImGuiHoveredFlags_AllowWhenBlockedByModal     := 1 << 6,   ; Return true even if a modal popup window is normally blocking access to this item/window. FIXME-TODO: Unavailable yet.
+ImGuiHoveredFlags_AllowWhenBlockedByActiveItem  := 1 << 7   ; Return true even if an active item is blocking access to this item/window. Useful for Drag and Drop patterns.
+ImGuiHoveredFlags_AllowWhenOverlapped           := 1 << 8   ; IsItemHovered() only: Return true even if the position is obstructed or overlapped by another window
+ImGuiHoveredFlags_AllowWhenDisabled             := 1 << 9   ; IsItemHovered() only: Return true even if the item is disabled
+ImGuiHoveredFlags_NoNavOverride                 := 1 << 10  ; Disable using gamepad/keyboard navigation state when active, always query mouse.
+ImGuiHoveredFlags_RectOnly                      := ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_AllowWhenOverlapped,
+ImGuiHoveredFlags_RootAndChildWindows           := ImGuiHoveredFlags_RootWindow | ImGuiHoveredFlags_ChildWindows
+
 
 
 ImGuiDockNodeFlags_None                         :=  0
@@ -191,34 +205,10 @@ ImGuiDir_Right   :=  1
 ImGuiDir_Up      :=  2
 ImGuiDir_Down    :=  3
 
-ImGuiKey_Tab := 0
-ImGuiKey_LeftArrow := 1
-ImGuiKey_RightArrow := 2
-ImGuiKey_UpArrow := 3
-ImGuiKey_DownArrow := 4
-ImGuiKey_PageUp := 5
-ImGuiKey_PageDown := 6
-ImGuiKey_Home := 7
-ImGuiKey_End := 8
-ImGuiKey_Insert := 9
-ImGuiKey_Delete := 10
-ImGuiKey_Backspace := 11
-ImGuiKey_Space := 12
-ImGuiKey_Enter := 13
-ImGuiKey_Escape := 14
-ImGuiKey_KeyPadEnter := 15
-ImGuiKey_A := 16
-ImGuiKey_C := 17
-ImGuiKey_V := 18
-ImGuiKey_X := 19
-ImGuiKey_Y := 20
-ImGuiKey_Z := 21
 
-ImGuiKeyModFlags_None       :=  0
-ImGuiKeyModFlags_Ctrl       := 1<<0
-ImGuiKeyModFlags_Shift      := 1<<1
-ImGuiKeyModFlags_Alt        := 1<<2
-ImGuiKeyModFlags_Super      := 1<<3
+ImGuiKey_None := 0,
+;Todo
+
 ImGuiNavInput_Activate := 0
 ImGuiNavInput_Cancel := 1
 ImGuiNavInput_Input := 2
@@ -236,13 +226,11 @@ ImGuiNavInput_FocusNext := 13
 ImGuiNavInput_TweakSlow := 14
 ImGuiNavInput_TweakFast := 15
 
-ImGuiNavInput_KeyMenu_ := 16
-ImGuiNavInput_KeyLeft_ := 17
-ImGuiNavInput_KeyRight_ := 18
-ImGuiNavInput_KeyUp_ := 19
-ImGuiNavInput_KeyDown_ := 20
-ImGuiNavInput_COUNT := 21
-ImGuiNavInput_InternalStart_ :=  ImGuiNavInput_KeyMenu_
+ImGuiNavInput_KeyLeft_ := 16
+ImGuiNavInput_KeyRight_ := 17
+ImGuiNavInput_KeyUp_ := 18
+ImGuiNavInput_KeyDown_ := 19
+ImGuiNavInput_COUNT := 20
 
 
 ImGuiConfigFlags_None                   :=  0
@@ -313,39 +301,45 @@ ImGuiCol_PlotLines := 40
 ImGuiCol_PlotLinesHovered := 41
 ImGuiCol_PlotHistogram := 42
 ImGuiCol_PlotHistogramHovered := 43
-ImGuiCol_TextSelectedBg := 44
-ImGuiCol_DragDropTarget := 45
-ImGuiCol_NavHighlight := 46
-ImGuiCol_NavWindowingHighlight := 47
-ImGuiCol_NavWindowingDimBg := 48
-ImGuiCol_ModalWindowDimBg := 49
-ImGuiCol_DockingPreview_1 := 50
-ImGuiCol_DockingOutLine := 51
-ImGuiCol_DockingLine := 52
+ImGuiCol_TableHeaderBg := 44         ; Table header background
+ImGuiCol_TableBorderStrong := 45     ; Table outer and header borders (prefer using Alpha=1.0 here)
+ImGuiCol_TableBorderLight := 46     ; Table inner borders (prefer using Alpha=1.0 here)
+ImGuiCol_TableRowBg := 47            ; Table row background (even rows)
+ImGuiCol_TableRowBgAlt := 48         ; Table row background (odd rows)
+ImGuiCol_TextSelectedBg := 49
+ImGuiCol_DragDropTarget := 50
+ImGuiCol_NavHighlight := 51          ; Gamepad/keyboard: current highlighted item
+ImGuiCol_NavWindowingHighlight := 52 ; Highlight window when using CTRL+TAB
+ImGuiCol_NavWindowingDimBg := 53     ; Darken/colorize entire screen behind the CTRL+TAB window list, when active
+ImGuiCol_ModalWindowDimBg := 54      ; Darken/colorize entire screen behind a modal window, when one is active
 
-ImGuiStyleVar_Alpha := 0
-ImGuiStyleVar_WindowPadding := 1
-ImGuiStyleVar_WindowRounding := 2
-ImGuiStyleVar_WindowBorderSize := 3
-ImGuiStyleVar_WindowMinSize := 4
-ImGuiStyleVar_WindowTitleAlign := 5
-ImGuiStyleVar_ChildRounding := 6
-ImGuiStyleVar_ChildBorderSize := 7
-ImGuiStyleVar_PopupRounding := 8
-ImGuiStyleVar_PopupBorderSize := 9
-ImGuiStyleVar_FramePadding := 10
-ImGuiStyleVar_FrameRounding := 11
-ImGuiStyleVar_FrameBorderSize := 12
-ImGuiStyleVar_ItemSpacing := 13
-ImGuiStyleVar_ItemInnerSpacing := 14
-ImGuiStyleVar_IndentSpacing := 15
-ImGuiStyleVar_ScrollbarSize := 16
-ImGuiStyleVar_ScrollbarRounding := 17
-ImGuiStyleVar_GrabMinSize := 18
-ImGuiStyleVar_GrabRounding := 19
-ImGuiStyleVar_TabRounding := 20
-ImGuiStyleVar_ButtonTextAlign := 21
-ImGuiStyleVar_SelectableTextAlign := 22
+
+ImGuiStyleVar_Alpha := 0               ; float     Alpha
+ImGuiStyleVar_DisabledAlpha := 1       ; float     DisabledAlpha
+ImGuiStyleVar_WindowPadding := 2       ; ImVec2    WindowPadding
+ImGuiStyleVar_WindowRounding := 3      ; float     WindowRounding
+ImGuiStyleVar_WindowBorderSize := 4    ; float     WindowBorderSize
+ImGuiStyleVar_WindowMinSize := 5       ; ImVec2    WindowMinSize
+ImGuiStyleVar_WindowTitleAlign := 6    ; ImVec2    WindowTitleAlign
+ImGuiStyleVar_ChildRounding := 7       ; float     ChildRounding
+ImGuiStyleVar_ChildBorderSize := 8     ; float     ChildBorderSize
+ImGuiStyleVar_PopupRounding := 9       ; float     PopupRounding
+ImGuiStyleVar_PopupBorderSize := 10     ; float     PopupBorderSize
+ImGuiStyleVar_FramePadding := 11        ; ImVec2    FramePadding
+ImGuiStyleVar_FrameRounding := 12       ; float     FrameRounding
+ImGuiStyleVar_FrameBorderSize := 13     ; float     FrameBorderSize
+ImGuiStyleVar_ItemSpacing := 14         ; ImVec2    ItemSpacing
+ImGuiStyleVar_ItemInnerSpacing := 15    ; ImVec2    ItemInnerSpacing
+ImGuiStyleVar_IndentSpacing := 16       ; float     IndentSpacing
+ImGuiStyleVar_CellPadding := 17         ; ImVec2    CellPadding
+ImGuiStyleVar_ScrollbarSize := 18       ; float     ScrollbarSize
+ImGuiStyleVar_ScrollbarRounding := 19   ; float     ScrollbarRounding
+ImGuiStyleVar_GrabMinSize := 20         ; float     GrabMinSize
+ImGuiStyleVar_GrabRounding := 21        ; float     GrabRounding
+ImGuiStyleVar_TabRounding := 22         ; float     TabRounding
+ImGuiStyleVar_ButtonTextAlign := 23     ; ImVec2    ButtonTextAlign
+ImGuiStyleVar_SelectableTextAlign := 24 ; ImVec2    SelectableTextAlign
+ImGuiStyleVar_COUNT := 25
 
 ImGuiColorEditFlags_None            :=  0
 ImGuiColorEditFlags_NoAlpha         := 1<<1
@@ -385,14 +379,14 @@ ImGuiMouseButton_COUNT :=  5
 
 ImGuiMouseCursor_None :=  -1
 ImGuiMouseCursor_Arrow :=  0
-ImGuiMouseCursor_TextInput := 0
-ImGuiMouseCursor_ResizeAll := 1
-ImGuiMouseCursor_ResizeNS := 2
-ImGuiMouseCursor_ResizeEW := 3
-ImGuiMouseCursor_ResizeNESW := 4
-ImGuiMouseCursor_ResizeNWSE := 5
-ImGuiMouseCursor_Hand := 6
-ImGuiMouseCursor_NotAllowed := 7
+ImGuiMouseCursor_TextInput := 1
+ImGuiMouseCursor_ResizeAll := 2
+ImGuiMouseCursor_ResizeNS := 3
+ImGuiMouseCursor_ResizeEW := 4
+ImGuiMouseCursor_ResizeNESW := 5
+ImGuiMouseCursor_ResizeNWSE := 6
+ImGuiMouseCursor_Hand := 7
+ImGuiMouseCursor_NotAllowed := 8
 
 
 ImGuiCond_None          :=  0
@@ -403,20 +397,21 @@ ImGuiCond_Appearing     := 1<<3
 
 
 ImDrawCornerFlags_None      :=  0
-ImDrawCornerFlags_TopLeft   := 1<<0
-ImDrawCornerFlags_TopRight  := 1<<1
-ImDrawCornerFlags_BotLeft   := 1<<2
-ImDrawCornerFlags_BotRight  := 1<<3
+ImDrawCornerFlags_TopLeft   := 16
+ImDrawCornerFlags_TopRight  := 32
+ImDrawCornerFlags_BotLeft   := 64
+ImDrawCornerFlags_BotRight  := 128
+ImDrawCornerFlags_All := 240
 ImDrawCornerFlags_Top       := ImDrawCornerFlags_TopLeft |  ImDrawCornerFlags_TopRight
 ImDrawCornerFlags_Bot       := ImDrawCornerFlags_BotLeft |  ImDrawCornerFlags_BotRight
 ImDrawCornerFlags_Left      := ImDrawCornerFlags_TopLeft |  ImDrawCornerFlags_BotLeft
 ImDrawCornerFlags_Right     := ImDrawCornerFlags_TopRight |  ImDrawCornerFlags_BotRight
-ImDrawCornerFlags_All       :=  0xF
 
 ImDrawListFlags_None             :=  0
 ImDrawListFlags_AntiAliasedLines := 1<<0
-ImDrawListFlags_AntiAliasedFill  := 1<<1
-ImDrawListFlags_AllowVtxOffset   := 1<<2
+ImDrawListFlags_AntiAliasedLinesUseTex  := 1 << 1  ; Enable anti-aliased lines/borders using textures when possible. Require backend to render with bilinear filtering (NOT point/nearest filtering).
+ImDrawListFlags_AntiAliasedFill  := 1<<2
+ImDrawListFlags_AllowVtxOffset   := 1<<3
 
 _ImGui_Load_dll()
 {
@@ -471,9 +466,6 @@ _ImGui_SetWindowTitleAlign(x := 0.5, y := 0.5)
 *	- "c://xxx.ttf"
 *   - 内存加载
 *		- from_memory_ali
-*		- from_memory_baidu
-*		- from_memory_zkblack
-*		- HuakW7_size
 *		- from_memory_simhei
 * @font_size 字体大小
 * @font_range 字体的范围
@@ -521,7 +513,7 @@ _ImGui_GetIO()
 _ImGui_GetStyle()
 {
     result := Dllcall("imgui\GetStyle", "Cdecl Ptr")
-    return result
+	return Imgui_style(result)	
 }
 _ImGui_BeginFrame()
 {
@@ -1195,15 +1187,15 @@ _ImGui_DragFloat(label, &v, v_speed := 1, v_min := 0, v_max := 0, format := "%3.
 }
 _ImGui_DragFloat2(label, v, v_speed := 1, v_min := 0, v_max := 0, format := "%.3f", power := 1)
 {
-	Return ___ImGui_DragFloatN(2, label, v, v_speed, v_min, v_max, format, power)
+	Return ___ImGui_DragFloatN(2, label, &v, v_speed, v_min, v_max, format, power)
 }
 _ImGui_DragFloat3(label, v, v_speed := 1, v_min := 0, v_max := 0, format := "%.3f", power := 1)
 {
-	Return ___ImGui_DragFloatN(3, label, v, v_speed, v_min, v_max, format, power)
+	Return ___ImGui_DragFloatN(3, label, &v, v_speed, v_min, v_max, format, power)
 }
 _ImGui_DragFloat4(label, v, v_speed := 1, v_min := 0, v_max := 0, format := "%.3f", power := 1)
 {
-	Return ___ImGui_DragFloatN(4, label, v, v_speed, v_min, v_max, format, power)
+	Return ___ImGui_DragFloatN(4, label, &v, v_speed, v_min, v_max, format, power)
 }
 
 ___ImGui_DragFloatN(n, label, &v, v_speed, v_min, v_max, format, power)
@@ -1251,15 +1243,15 @@ _ImGui_DragInt(label, &v, v_speed := 1, v_min := 0, v_max := 0, format := "%d")
 }
  _ImGui_DragInt2(label, &v, v_speed := 1, v_min := 0, v_max := 0, format :="%d")
  {
-	___ImGui_DragIntN(2, label, v, v_speed, v_min, v_max, format)
+	___ImGui_DragIntN(2, label, &v, v_speed, v_min, v_max, format)
 }
 _ImGui_DragInt3(label, &v, v_speed := 1, v_min := 0, v_max := 0, format :="%d")
 {
-	___ImGui_DragIntN(3, label, v, v_speed, v_min, v_max, format)
+	___ImGui_DragIntN(3, label, &v, v_speed, v_min, v_max, format)
 }
 _ImGui_DragInt4(label, &v, v_speed := 1, v_min := 0, v_max := 0, format :="%d")
 {
-	___ImGui_DragIntN(4, label, v, v_speed, v_min, v_max, format)
+	___ImGui_DragIntN(4, label, &v, v_speed, v_min, v_max, format)
 }
 ___ImGui_DragIntN(n, label, &v, v_speed, v_min, v_max, format)
 {
@@ -1306,15 +1298,15 @@ _ImGui_SliderFloat(text, &value, v_min, v_max, format := "%.3f", power := 1)
 
 _ImGui_SliderFloat2(label, &v, v_min, v_max, format := "%.3f", power := 1)
 {
-	___ImGui_SliderFloatN(2, label, v, v_min, v_max, format, power)
+	___ImGui_SliderFloatN(2, label, &v, v_min, v_max, format, power)
 }
 _ImGui_SliderFloat3(label, &v, v_min, v_max, format := "%.3f", power := 1)
 {
-	___ImGui_SliderFloatN(3, label, v, v_min, v_max, format, power)
+	___ImGui_SliderFloatN(3, label, &v, v_min, v_max, format, power)
 }
 _ImGui_SliderFloat4(label, &v, v_min, v_max, format := "%.3f", power := 1)
 {
-	___ImGui_SliderFloatN(4, label, v, v_min, v_max, format, power)
+	___ImGui_SliderFloatN(4, label, &v, v_min, v_max, format, power)
 }
 
 ___ImGui_SliderFloatN(n, label, &v, v_min, v_max, format, power)
@@ -1444,15 +1436,15 @@ _ImGui_InputFloat(label, &v, step := 0, step_fast := 0, format := "%.3f", flags 
 
 _ImGui_InputFloat2(label, &v, format := "%.3f", flags := 0)
 {
-	___ImGui_InputFloatN(2, label, v, format, flags)
+	___ImGui_InputFloatN(2, label, &v, format, flags)
 }
 _ImGui_InputFloat3(label, &v, format := "%.3f", flags := 0)
 {
-	___ImGui_InputFloatN(3, label, v, format, flags)
+	___ImGui_InputFloatN(3, label, &v, format, flags)
 }
 _ImGui_InputFloat4(label, &v, format := "%.3f", flags := 0)
 {
-	___ImGui_InputFloatN(4, label, v, format, flags)
+	___ImGui_InputFloatN(4, label, &v, format, flags)
 }
 ___ImGui_InputFloatN(n, label, &v, format, flags)
 {
@@ -1485,15 +1477,15 @@ _ImGui_InputInt(label, &v, step := 1, step_fast := 100, flags := 0)
 
 _ImGui_InputInt2(label, &v, flags := 0)
 {
-	___ImGui_InputIntN(2, label, v, flags := 0)
+	___ImGui_InputIntN(2, label, &v, flags := 0)
 }
 _ImGui_InputInt3(label, &v, flags := 0)
 {
-	___ImGui_InputIntN(3, label, v, flags := 0)
+	___ImGui_InputIntN(3, label, &v, flags := 0)
 }
 _ImGui_InputInt4(label, &v, flags := 0)
 {
-	___ImGui_InputIntN(4, label, v, flags)
+	___ImGui_InputIntN(4, label, &v, flags)
 }
 
 ___ImGui_InputIntN(n, label, &v, flags)
@@ -2394,3 +2386,805 @@ _Imgui_load_font_range_from_string(string, &range_array, &length, &raw_data)
 	loop(length)
 		range_array.Push(NumGet(struct_value, (A_Index -1) * 4, "int"))
 }
+
+class Imgui_style
+{
+	ptr := 0
+	size := 0
+	__New(ptr) => (this.ptr := ptr, this.size := ptr)
+	Alpha
+	{
+		get => NumGet(this, 0, "float")
+		set => NumPut("float", value, this, 0)
+	}
+	DisabledAlpha
+	{
+		get => NumGet(this, 4, "float")
+		set => NumPut("float", value, this, 4)
+	}
+	WindowPadding
+	{
+		get => [NumGet(this, 8, "float"), NumGet(this, 12, "float")]
+		set => [NumPut("float", value[1], this, 8), NumPut("float", value[2], this, 12)]
+	}
+	WindowRounding
+	{
+		get => NumGet(this, 16, "float")
+		set => NumPut("float", value, this, 16)
+	}
+	WindowBorderSize
+	{
+		get => NumGet(this, 20, "float")
+		set => NumPut("float", value, this, 20)
+	}
+	WindowMinSize
+	{
+		get => [NumGet(this, 24, "float"), NumGet(this, 28, "float")]
+		set => [NumPut("float", value[1], this, 24), NumPut("float", value[2], this, 28)]
+	}
+	WindowTitleAlign
+	{
+		get => [NumGet(this, 32, "float"), NumGet(this, 36, "float")]
+		set => [NumPut("float", value[1], this, 32), NumPut("float", value[2], this, 36)]
+	}
+	WindowMenuButtonPosition
+	{
+		get => NumGet(this, 40, "float")
+		set => NumPut("float", value, this, 40)
+	}
+	ChildRounding
+	{
+		get => NumGet(this, 44, "float")
+		set => NumPut("float", value, this, 44)
+	}
+	ChildBorderSize
+	{
+		get => NumGet(this, 48, "float")
+		set => NumPut("float", value, this, 48)
+	}
+	PopupRounding
+	{
+		get => NumGet(this, 52, "float")
+		set => NumPut("float", value, this, 52)
+	}
+	PopupBorderSize
+	{
+		get => NumGet(this, 56, "float")
+		set => NumPut("float", value, this, 56)
+	}
+	FramePadding
+	{
+		get => [NumGet(this, 60, "float"), NumGet(this, 64, "float")]
+		set => [NumPut("float", value[1], this, 60), NumPut("float", value[2], this, 64)]
+	}
+	FrameRounding
+	{
+		get => NumGet(this, 68, "float")
+		set => NumPut("float", value, this, 68)
+	}
+	FrameBorderSize
+	{
+		get => NumGet(this, 72, "float")
+		set => NumPut("float", value, this, 72)
+	}
+	ItemSpacing
+	{
+		get => [NumGet(this, 76, "float"), NumGet(this, 80, "float")]
+		set => [NumPut("float", value[1], this, 76), NumPut("float", value[2], this, 80)]
+	}
+	ItemInnerSpacing
+	{
+		get => [NumGet(this, 84, "float"), NumGet(this, 88, "float")]
+		set => [NumPut("float", value[1], this, 84), NumPut("float", value[2], this, 88)]
+	}
+	CellPadding
+	{
+		get => [NumGet(this, 92, "float"), NumGet(this, 96, "float")]
+		set => [NumPut("float", value[1], this, 92), NumPut("float", value[2], this, 96)]
+	}
+	TouchExtraPadding
+	{
+		get => [NumGet(this, 100, "float"), NumGet(this, 104, "float")]
+		set => [NumPut("float", value[1], this, 100), NumPut("float", value[2], this, 104)]
+	}
+	IndentSpacing
+	{
+		get => NumGet(this, 108, "float")
+		set => NumPut("float", value, this, 108)
+	}
+	ColumnsMinSpacing
+	{
+		get => NumGet(this, 112, "float")
+		set => NumPut("float", value, this, 112)
+	}
+	ScrollbarSize
+	{
+		get => NumGet(this, 116, "float")
+		set => NumPut("float", value, this, 112)
+	}
+	ScrollbarRounding
+	{
+		get => NumGet(this, 120, "float")
+		set => NumPut("float", value, this, 120)
+	}
+	GrabMinSize
+	{
+		get => NumGet(this, 124, "float")
+		set => NumPut("float", value, this, 124)
+	}
+	GrabRounding
+	{
+		get => NumGet(this, 128, "float")
+		set => NumPut("float", value, this, 128)
+	}
+	LogSliderDeadzone
+	{
+		get => NumGet(this, 132, "float")
+		set => NumPut("float", value, this, 132)
+	}
+	TabRounding
+	{
+		get => NumGet(this, 136, "float")
+		set => NumPut("float", value, this, 136)
+	}
+	TabBorderSize
+	{
+		get => NumGet(this, 140, "float")
+		set => NumPut("float", value, this, 140)
+	}
+	TabMinWidthForCloseButton
+	{
+		get => NumGet(this, 144, "float")
+		set => NumPut("float", value, this, 144)
+	}
+	ColorButtonPosition
+	{
+		get => NumGet(this, 148, "float")
+		set => NumPut("float", value, this, 148)
+	}
+	ButtonTextAlign
+	{
+		get => [NumGet(this, 152, "float"), NumGet(this, 156, "float")]
+		set => [NumPut("float", value[1], this, 152), NumPut("float", value[2], this, 156)]
+	}
+	SelectableTextAlign
+	{
+		get => [NumGet(this, 160, "float"), NumGet(this, 164, "float")]
+		set => [NumPut("float", value[1], this, 160), NumPut("float", value[2], this, 164)]
+	}
+	DisplayWindowPadding
+	{
+		get => [NumGet(this, 168, "float"), NumGet(this, 172, "float")]
+		set => [NumPut("float", value[1], this, 168), NumPut("float", value[2], this, 172)]
+	}
+	DisplaySafeAreaPadding
+	{
+		get => [NumGet(this, 176, "float"), NumGet(this, 180, "float")]
+		set => [NumPut("float", value[1], this, 176), NumPut("float", value[2], this, 180)]
+	}
+	MouseCursorScale
+	{
+		get => NumGet(this, 184, "float")
+		set => NumPut("float", value, this, 184)
+	}
+	AntiAliasedLines
+	{
+		get => NumGet(this, 188, "char")
+		set => NumPut("char", value, this, 188)
+	}
+	AntiAliasedLinesUseTex
+	{
+		get => NumGet(this, 189, "char")
+		set => NumPut("char", value, this, 189)
+	}
+	AntiAliasedFill
+	{
+		get => NumGet(this, 190, "char")
+		set => NumPut("char", value, this, 190)
+	}
+	CurveTessellationTol
+	{
+		get => NumGet(this, 192, "char")
+		set => NumPut("char", value, this, 192)
+	}
+	CircleTessellationMaxError
+	{
+		get => NumGet(this, 196, "char")
+		set => NumPut("char", value, this, 196)
+	}
+;ImGuiCol_Text
+;example
+; c := Colors[ImGuiCol_Text]
+; Colors[ImGuiCol_Text] := [1, 2, 3, 4]
+	Colors[index]
+	{
+		;sc := 1.0 / 255.0
+		;r := value[1] * sc, g := value[2] * sc, b := value[3] * sc, a := value[4] * sc
+		get => [NumGet(this, 200 + (index - ImGuiCol_Text) * 16, "float"), 
+				NumGet(this, 200 + (index - ImGuiCol_Text) * 16 + 4, "float"), 
+				NumGet(this, 200 + (index - ImGuiCol_Text) * 16 + 8, "float"), 
+				NumGet(this, 200 + (index - ImGuiCol_Text) * 16 + 12, "float")]
+		set => [NumPut("float", value[1] * (1.0 / 255.0), this, 200 + (index - ImGuiCol_Text) * 16), 
+				NumPut("float", value[2] * (1.0 / 255.0), this, 200 + (index - ImGuiCol_Text) * 16 + 4), 
+				NumPut("float", value[3] * (1.0 / 255.0), this, 200 + (index - ImGuiCol_Text) * 16 + 8), 
+				NumPut("float", value[4] * (1.0 / 255.0), this, 200 + (index - ImGuiCol_Text) * 16 + 12)]
+	}
+}
+
+/*
+class ImGuiStyle	size(1080):
+1>	+---
+1> 0	| Alpha
+1> 4	| DisabledAlpha
+1> 8	| ImVec2 WindowPadding
+1>16	| WindowRounding
+1>20	| WindowBorderSize
+1>24	| ImVec2 WindowMinSize
+1>32	| ImVec2 WindowTitleAlign
+1>40	| WindowMenuButtonPosition
+1>44	| ChildRounding
+1>48	| ChildBorderSize
+1>52	| PopupRounding
+1>56	| PopupBorderSize
+1>60	| ImVec2 FramePadding
+1>68	| FrameRounding
+1>72	| FrameBorderSize
+1>76	| ImVec2 ItemSpacing
+1>84	| ImVec2 ItemInnerSpacing
+1>92	| ImVec2 CellPadding
+1>100	| ImVec2 TouchExtraPadding
+1>108	| IndentSpacing
+1>112	| ColumnsMinSpacing
+1>116	| ScrollbarSize
+1>120	| ScrollbarRounding
+1>124	| GrabMinSize
+1>128	| GrabRounding
+1>132	| LogSliderDeadzone
+1>136	| TabRounding
+1>140	| TabBorderSize
+1>144	| TabMinWidthForCloseButton
+1>148	| ColorButtonPosition
+1>152	| ImVec2 ButtonTextAlign
+1>160	| ImVec2 SelectableTextAlign
+1>168	| ImVec2 DisplayWindowPadding
+1>176	| ImVec2 DisplaySafeAreaPadding
+1>184	| MouseCursorScale
+1>188	| AntiAliasedLines
+1>189	| AntiAliasedLinesUseTex
+1>190	| AntiAliasedFill
+1>  	| <alignment member> (size=1)
+1>192	| CurveTessellationTol
+1>196	| CircleTessellationMaxError
+1>200	| Colors
+1>	+---
+*/
+
+class Imgui_io
+{
+	ptr := 0
+	size := 0
+	__New(ptr) => (this.ptr := ptr, this.size := ptr)
+	ConfigFlags
+	{
+		get => NumGet(this, 0, "int")
+		set => NumPut("int", value, this, 0)
+	}
+	BackendFlags
+	{
+		get => NumGet(this, 4, "int")
+		set => NumPut("int", value, this, 4)
+	}
+	DisplaySize
+	{
+		get => [NumGet(this, 8, "float"), NumGet(this, 12, "float")]
+		set => [NumPut("float", value[1], this, 8), NumPut("float", value[2], this, 12)]
+	}
+	DeltaTime
+	{
+		get => NumGet(this, 16, "float")
+		set => NumPut("float", value, this, 16)
+	}
+	IniSavingRate
+	{
+		get => NumGet(this, 20, "float")
+		set => NumPut("float", value, this, 20)
+	}
+	IniFilename
+	{
+		get => NumGet(this, 24, "ptr")
+		set => NumPut("ptr", value, this, 24)
+	}
+	LogFilename
+	{
+		get => NumGet(this, 32, "ptr")
+		set => NumPut("ptr", value, this, 32)
+	}
+	MouseDoubleClickTime
+	{
+		get => NumGet(this, 40, "float")
+		set => NumPut("float", value, this, 40)
+	}
+	MouseDoubleClickMaxDist
+	{
+		get => NumGet(this, 44, "float")
+		set => NumPut("float", value, this, 44)
+	}
+	MouseDragThreshold
+	{
+		get => NumGet(this, 48, "float")
+		set => NumPut("float", value, this, 48)
+	}
+	KeyRepeatDelay
+	{
+		get => NumGet(this, 52, "float")
+		set => NumPut("float", value, this, 52)
+	}
+	KeyRepeatRate
+	{
+		get => NumGet(this, 56, "float")
+		set => NumPut("float", value, this, 56)
+	}
+	UserData
+	{
+		get => NumGet(this, 64, "ptr")
+		set => NumPut("ptr", value, this, 64)
+	}
+	Fonts
+	{
+		get => NumGet(this, 72, "ptr")
+		set => NumPut("ptr", value, this, 72)
+	}
+	FontGlobalScale
+	{
+		get => NumGet(this, 80, "float")
+		set => NumPut("float", value, this, 80)
+	}
+	FontAllowUserScaling
+	{
+		get => NumGet(this, 84, "bool")
+		set => NumPut("bool", value, this, 84)
+	}
+	FontDefault
+	{
+		get => NumGet(this, 88, "ptr")
+		set => NumPut("ptr", value, this, 88)
+	}
+	DisplayFramebufferScale
+	{
+		get => [NumGet(this, 96, "float"), NumGet(this, 100, "float")]
+		set => [NumPut("float", value[1], this, 96), NumPut("float", value[2], this, 100)]
+	}
+	ConfigDockingNoSplit
+	{
+		get => NumGet(this, 104, "bool")
+		set => NumPut("bool", value, this, 104)
+	}
+	ConfigDockingWithShift
+	{
+		get => NumGet(this, 105, "bool")
+		set => NumPut("bool", value, this, 105)
+	}
+	ConfigDockingAlwaysTabBar
+	{
+		get => NumGet(this, 106, "bool")
+		set => NumPut("bool", value, this, 106)
+	}
+	ConfigDockingTransparentPayload
+	{
+		get => NumGet(this, 107, "bool")
+		set => NumPut("bool", value, this, 107)
+	}
+	ConfigViewportsNoAutoMerge
+	{
+		get => NumGet(this, 108, "bool")
+		set => NumPut("bool", value, this, 108)
+	}
+	ConfigViewportsNoTaskBarIcon
+	{
+		get => NumGet(this, 109, "bool")
+		set => NumPut("bool", value, this, 109)
+	}
+	ConfigViewportsNoDecoration
+	{
+		get => NumGet(this, 110, "bool")
+		set => NumPut("bool", value, this, 110)
+	}
+	ConfigViewportsNoDefaultParent
+	{
+		get => NumGet(this, 111, "bool")
+		set => NumPut("bool", value, this, 111)
+	}
+	MouseDrawCursor
+	{
+		get => NumGet(this, 112, "bool")
+		set => NumPut("bool", value, this, 112)
+	}
+	ConfigMacOSXBehaviors
+	{
+		get => NumGet(this, 113, "bool")
+		set => NumPut("bool", value, this, 113)
+	}
+	ConfigInputTrickleEventQueue
+	{
+		get => NumGet(this, 114, "bool")
+		set => NumPut("bool", value, this, 114)
+	}
+	ConfigInputTextCursorBlink
+	{
+		get => NumGet(this, 115, "bool")
+		set => NumPut("bool", value, this, 115)
+	}
+	ConfigDragClickToInputText
+	{
+		get => NumGet(this, 116, "bool")
+		set => NumPut("bool", value, this, 116)
+	}
+	ConfigWindowsResizeFromEdges
+	{
+		get => NumGet(this, 117, "bool")
+		set => NumPut("bool", value, this, 117)
+	}
+	ConfigWindowsMoveFromTitleBarOnly
+	{
+		get => NumGet(this, 118, "bool")
+		set => NumPut("bool", value, this, 117)
+	}
+	ConfigMemoryCompactTimer
+    {
+		get => NumGet(this, 120, "float")
+		set => NumPut("float", value, this, 120)
+    }
+	BackendPlatformName
+	{
+		get => NumGet(this, 128, "ptr")
+		set => NumPut("ptr", value, this, 128)
+	}
+	BackendRendererName
+	{
+		get => NumGet(this, 136, "ptr")
+		set => NumPut("ptr", value, this, 136)
+	}
+	BackendPlatformUserData
+	{
+		get => NumGet(this, 144, "ptr")
+		set => NumPut("ptr", value, this, 144)
+	}
+	BackendRendererUserData
+	{
+		get => NumGet(this, 152, "ptr")
+		set => NumPut("ptr", value, this, 152)
+	}
+	BackendLanguageUserData
+	{
+		get => NumGet(this, 160, "ptr")
+		set => NumPut("ptr", value, this, 160)
+	}
+	GetClipboardTextFn
+	{
+		get => NumGet(this, 168, "ptr")
+		set => NumPut("ptr", value, this, 168)
+	}
+	SetClipboardTextFn
+	{
+		get => NumGet(this, 176, "ptr")
+		set => NumPut("ptr", value, this, 176)
+	}
+	ClipboardUserData
+	{
+		get => NumGet(this, 184, "ptr")
+		set => NumPut("ptr", value, this, 184)
+	}
+	SetPlatformImeDataFn
+	{
+		get => NumGet(this, 192, "ptr")
+		set => NumPut("ptr", value, this, 192)
+	}
+	ImeWindowHandle
+	{
+		get => NumGet(this, 120, "ptr")
+		set => NumPut("ptr", value, this, 120)
+	}
+	WantCaptureMouse
+	{
+		get => NumGet(this, 208, "bool")
+		set => NumPut("bool", value, this, 104)
+	}
+	WantCaptureKeyboard
+	{
+		get => NumGet(this, 209, "ptr")
+		set => NumPut("ptr", value, this, 209)
+	}
+	WantTextInput
+	{
+		get => NumGet(this, 210, "ptr")
+		set => NumPut("ptr", value, this, 210)
+	}
+	WantSetMousePos
+	{
+		get => NumGet(this, 211, "ptr")
+		set => NumPut("ptr", value, this, 211)
+	}
+	WantSaveIniSettings
+	{
+		get => NumGet(this, 212, "ptr")
+		set => NumPut("ptr", value, this, 212)
+	}
+	NavActive
+	{
+		get => NumGet(this, 213 "ptr")
+		set => NumPut("ptr", value, this, 213)
+	}
+	NavVisible
+	{
+		get => NumGet(this, 214, "ptr")
+		set => NumPut("ptr", value, this, 214)
+	}
+	Framerate
+    {
+		get => NumGet(this, 216, "float")
+		set => NumPut("float", value, this, 216)
+    }
+	MetricsRenderVertices
+    {
+		get => NumGet(this, 220, "int")
+		set => NumPut("int", value, this, 220)
+    }
+	MetricsRenderIndices
+    {
+		get => NumGet(this, 224, "int")
+		set => NumPut("int", value, this, 224)
+    }
+	MetricsRenderWindows
+    {
+		get => NumGet(this, 228, "int")
+		set => NumPut("int", value, this, 228)
+    }
+	MetricsActiveWindows
+    {
+		get => NumGet(this, 232, "int")
+		set => NumPut("int", value, this, 232)
+    }
+	MetricsActiveAllocations
+    {
+		get => NumGet(this, 236, "int")
+		set => NumPut("int", value, this, 236)
+    }
+	MouseDelta
+	{
+		get => [NumGet(this, 240, "float"), NumGet(this, 244, "float")]
+		set => [NumPut("float", value[1], this, 240), NumPut("float", value[2], this, 244)]
+	}
+;1>248	| KeyMap
+;1>2828	| KeysDown
+;    int         KeyMap[ImGuiKey_COUNT];             // [LEGACY] Input: map of indices into the KeysDown[512] entries array which represent your "native" keyboard state. The first 512 are now unused and should be kept zero. Legacy backend will write into KeyMap[] using ImGuiKey_ indices which are always >512.
+;    bool        KeysDown[ImGuiKey_COUNT];           // [LEGACY] Input: Keyboard keys that are pressed (ideally left in the "native" order your engine has access to keyboard keys, so you can use your own defines/enums for keys). This used to be [512] sized. It is now ImGuiKey_COUNT to allow legacy io.KeysDown[GetKeyIndex(...)] to work without an overflow.
+	MousePos
+	{
+		get => [NumGet(this, 3476, "float"), NumGet(this, 3476, "float")]
+		set => [NumPut("float", value[1], this, 3476), NumPut("float", value[2], this, 3476)]
+	}
+;1>3484	| MouseDown
+;    bool        MouseDown[5];                       // Mouse buttons: 0=left, 1=right, 2=middle + extras (ImGuiMouseButton_COUNT == 5). Dear ImGui mostly uses left and right buttons. Others buttons allows us to track if the mouse is being used by your application + available to user as a convenience via IsMouse** API.
+	MouseWheel
+    {
+		get => NumGet(this, 3492, "float")
+		set => NumPut("float", value, this, 3492)
+    }
+	MouseWheelH
+    {
+		get => NumGet(this, 3496, "float")
+		set => NumPut("float", value, this, 3496)
+    }
+	MouseHoveredViewport
+    {
+		get => NumGet(this, 3500, "uint")
+		set => NumPut("uint", value, this, 3500)
+    }
+	KeyCtrl
+	{
+		get => NumGet(this, 3504, "bool")
+		set => NumPut("bool", value, this, 3504)
+	}
+	KeyShift
+	{
+		get => NumGet(this, 3505, "bool")
+		set => NumPut("bool", value, this, 3505)
+	}
+	KeyAlt
+	{
+		get => NumGet(this, 3506, "bool")
+		set => NumPut("bool", value, this, 3506)
+	}
+	KeySuper
+	{
+		get => NumGet(this, 3507, "bool")
+		set => NumPut("bool", value, this, 3507)
+	}
+;1>3508	| NavInputs
+;    float       NavInputs[ImGuiNavInput_COUNT];     // Gamepad inputs. Cleared back to zero by EndFrame(). Keyboard keys will be auto-mapped and be written here by NewFrame().
+	KeyMods
+    {
+		get => NumGet(this, 3588, "int")
+		set => NumPut("int", value, this, 3588)
+    }
+;1>3592	| KeysData
+;    ImGuiKeyData KeysData[ImGuiKey_KeysData_SIZE];  // Key state for all known keys. Use IsKeyXXX() functions to access this.
+	WantCaptureMouseUnlessPopupClose
+	{
+		get => NumGet(this, 13912, "bool")
+		set => NumPut("bool", value, this, 13912)
+	}
+	MousePosPrev
+	{
+		get => [NumGet(this, 13916, "float"), NumGet(this, 13920, "float")]
+		set => [NumPut("float", value[1], this, 13916), NumPut("float", value[2], this, 13920)]
+	}
+;1>13924	| MouseClickedPos
+;    ImVec2      MouseClickedPos[5];                 // Position at time of clicking
+;1>13968	| MouseClickedTime
+;    double      MouseClickedTime[5];                // Time of last click (used to figure out double-click)
+;1>14008	| MouseClicked
+;    bool        MouseClicked[5];                    // Mouse button went from !Down to Down (same as MouseClickedCount[x] != 0)
+;1>14013	| MouseDoubleClicked
+;    bool        MouseDoubleClicked[5];              // Has mouse button been double-clicked? (same as MouseClickedCount[x] == 2)
+;1>14018	| MouseClickedCount
+;    ImU16       MouseClickedCount[5];               // == 0 (not clicked), == 1 (same as MouseClicked[]), == 2 (double-clicked), == 3 (triple-clicked) etc. when going from !Down to Down
+;1>14028	| MouseClickedLastCount
+;    ImU16       MouseClickedLastCount[5];           // Count successive number of clicks. Stays valid after mouse release. Reset after another click is done.
+;1>14038	| MouseReleased
+;    bool        MouseReleased[5];                   // Mouse button went from Down to !Down
+;1>14043	| MouseDownOwned
+;    bool        MouseDownOwned[5];                  // Track if button was clicked inside a dear imgui window or over void blocked by a popup. We don't request mouse capture from the application if click started outside ImGui bounds.
+;1>14048	| MouseDownOwnedUnlessPopupClose
+;    bool        MouseDownOwnedUnlessPopupClose[5];  // Track if button was clicked inside a dear imgui window.
+;1>14056	| MouseDownDuration
+;    float       MouseDownDuration[5];               // Duration the mouse button has been down (0.0f == just clicked)
+;1>14076	| MouseDownDurationPrev
+;    float       MouseDownDurationPrev[5];           // Previous time the mouse button has been down
+;1>14096	| MouseDragMaxDistanceAbs
+;    ImVec2      MouseDragMaxDistanceAbs[5];         // Maximum distance, absolute, on each axis, of how much mouse has traveled from the clicking point
+;1>14136	| MouseDragMaxDistanceSqr
+;    float       MouseDragMaxDistanceSqr[5];         // Squared maximum distance of how much mouse has traveled from the clicking point (used for moving thresholds)
+;1>14156	| NavInputsDownDuration
+;    float       NavInputsDownDuration[ImGuiNavInput_COUNT];
+;1>14236	| NavInputsDownDurationPrev
+;    float       NavInputsDownDurationPrev[ImGuiNavInput_COUNT];
+	PenPressure
+    {
+		get => NumGet(this, 14316, "float")
+		set => NumPut("float", value, this, 14316)
+    }
+	AppFocusLost
+	{
+		get => NumGet(this, 14320, "bool")
+		set => NumPut("bool", value, this, 14320)
+	}
+	BackendUsingLegacyKeyArrays
+	{
+		get => NumGet(this, 14321, "char")
+		set => NumPut("char", value, this, 14321)
+	}
+	BackendUsingLegacyNavInputArray
+	{
+		get => NumGet(this, 14322, "bool")
+		set => NumPut("bool", value, this, 14322)
+	}
+	InputQueueSurrogate
+	{
+		get => NumGet(this, 14324, "ushort")
+		set => NumPut("ushort", value, this, 14324)
+	}
+;1>14328	| ?$ImVector@G InputQueueCharacters
+;    ImVector<ImWchar> InputQueueCharacters;         // Queue of _characters_ input (obtained by platform backend). Fill using AddInputCharacter() helper.
+}
+/*
+1>class ImGuiIO	size(14344):
+1>	+---
+1> 0	| ConfigFlags
+1> 4	| BackendFlags
+1> 8	| ImVec2 DisplaySize
+1>16	| DeltaTime
+1>20	| IniSavingRate
+1>24	| IniFilename
+1>32	| LogFilename
+1>40	| MouseDoubleClickTime
+1>44	| MouseDoubleClickMaxDist
+1>48	| MouseDragThreshold
+1>52	| KeyRepeatDelay
+1>56	| KeyRepeatRate
+1>  	| <alignment member> (size=4)
+1>64	| UserData
+1>72	| Fonts
+1>80	| FontGlobalScale
+1>84	| FontAllowUserScaling
+1>  	| <alignment member> (size=3)
+1>88	| FontDefault
+1>96	| ImVec2 DisplayFramebufferScale
+1>104	| ConfigDockingNoSplit
+1>105	| ConfigDockingWithShift
+1>106	| ConfigDockingAlwaysTabBar
+1>107	| ConfigDockingTransparentPayload
+1>108	| ConfigViewportsNoAutoMerge
+1>109	| ConfigViewportsNoTaskBarIcon
+1>110	| ConfigViewportsNoDecoration
+1>111	| ConfigViewportsNoDefaultParent
+1>112	| MouseDrawCursor
+1>113	| ConfigMacOSXBehaviors
+1>114	| ConfigInputTrickleEventQueue
+1>115	| ConfigInputTextCursorBlink
+1>116	| ConfigDragClickToInputText
+1>117	| ConfigWindowsResizeFromEdges
+1>118	| ConfigWindowsMoveFromTitleBarOnly
+1>  	| <alignment member> (size=1)
+1>120	| ConfigMemoryCompactTimer
+1>  	| <alignment member> (size=4)
+1>128	| BackendPlatformName
+1>136	| BackendRendererName
+1>144	| BackendPlatformUserData
+1>152	| BackendRendererUserData
+1>160	| BackendLanguageUserData
+1>168	| GetClipboardTextFn
+1>176	| SetClipboardTextFn
+1>184	| ClipboardUserData
+1>192	| SetPlatformImeDataFn
+1>200	| ImeWindowHandle
+1>208	| WantCaptureMouse
+1>209	| WantCaptureKeyboard
+1>210	| WantTextInput
+1>211	| WantSetMousePos
+1>212	| WantSaveIniSettings
+1>213	| NavActive
+1>214	| NavVisible
+1>  	| <alignment member> (size=1)
+1>216	| Framerate
+1>220	| MetricsRenderVertices
+1>224	| MetricsRenderIndices
+1>228	| MetricsRenderWindows
+1>232	| MetricsActiveWindows
+1>236	| MetricsActiveAllocations
+1>240	| ImVec2 MouseDelta
+1>248	| KeyMap
+1>2828	| KeysDown
+1>  	| <alignment member> (size=3)
+1>3476	| ImVec2 MousePos
+1>3484	| MouseDown
+1>  	| <alignment member> (size=3)
+1>3492	| MouseWheel
+1>3496	| MouseWheelH
+1>3500	| MouseHoveredViewport
+1>3504	| KeyCtrl
+1>3505	| KeyShift
+1>3506	| KeyAlt
+1>3507	| KeySuper
+1>3508	| NavInputs
+1>3588	| KeyMods
+1>3592	| KeysData
+1>13912	| WantCaptureMouseUnlessPopupClose
+1>  	| <alignment member> (size=3)
+1>13916	| ImVec2 MousePosPrev
+1>13924	| MouseClickedPos
+1>  	| <alignment member> (size=4)
+1>13968	| MouseClickedTime
+1>14008	| MouseClicked
+1>14013	| MouseDoubleClicked
+1>14018	| MouseClickedCount
+1>14028	| MouseClickedLastCount
+1>14038	| MouseReleased
+1>14043	| MouseDownOwned
+1>14048	| MouseDownOwnedUnlessPopupClose
+1>  	| <alignment member> (size=3)
+1>14056	| MouseDownDuration
+1>14076	| MouseDownDurationPrev
+1>14096	| MouseDragMaxDistanceAbs
+1>14136	| MouseDragMaxDistanceSqr
+1>14156	| NavInputsDownDuration
+1>14236	| NavInputsDownDurationPrev
+1>14316	| PenPressure
+1>14320	| AppFocusLost
+1>14321	| BackendUsingLegacyKeyArrays
+1>14322	| BackendUsingLegacyNavInputArray
+1>  	| <alignment member> (size=1)
+1>14324	| InputQueueSurrogate
+1>  	| <alignment member> (size=2)
+1>14328	| ?$ImVector@G InputQueueCharacters
+*/

@@ -2387,6 +2387,16 @@ _Imgui_load_font_range_from_string(string, &range_array, &length, &raw_data)
 		range_array.Push(NumGet(struct_value, (A_Index -1) * 4, "int"))
 }
 
+
+_Imgui_toggle_button(text, &active)
+{
+    b_active := buffer(4, 0)
+    NumPut("Int", active, b_active)
+	result := DllCall("imgui\imgui_toggle_button", "wstr", text, "ptr", b_active)
+    active := NumGet(b_active, 0, "Int")
+    return result
+}
+
 class Imgui_style
 {
 	ptr := 0

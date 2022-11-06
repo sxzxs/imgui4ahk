@@ -65,7 +65,8 @@ main()
 
     WinSetAlwaysOnTop( 1,hwnd)
     WinHide(hwnd)
-    _ImGui_StyleColorsDark()
+    ;_ImGui_StyleColorsDark()
+    set_imgui_style()
     io := _ImGui_GetIO()
     _ImGui_SetWindowTitleAlign(0.1, 0.1)
     _ImGui_EnableDocking(True)
@@ -567,4 +568,47 @@ ProcessInformation(PID)
 		}
 	}
 	return false
+}
+
+set_imgui_style()
+{
+    style := _ImGui_GetStyle()
+    style.TabBorderSize := 1.0
+    style.FrameBorderSize := 1.0
+
+    style.WindowRounding := 6
+    style.ChildRounding := 6
+    style.FrameRounding := 6
+    style.PopupRounding := 6
+    style.ScrollbarRounding := 6
+    style.ScrollbarRounding := 6
+    style.GrabRounding := 6
+    style.LogSliderDeadzone := 6
+    style.TabRounding := 6
+
+	style.Colors[ImGuiCol_TitleBg] := [14, 4, 1, 255]
+	style.Colors[ImGuiCol_TitleBgActive] := [17, 5, 1, 255]
+	style.Colors[ImGuiCol_TitleBgCollapsed] := [0, 0, 130, 0]
+
+
+    style.Colors[ImGuiCol_Tab] := [0, 0, 0, 255]
+    style.Colors[ImGuiCol_TabHovered] := [40, 213, 204, 255]
+    style.Colors[ImGuiCol_TabActive] := [19, 123, 49, 255]
+
+
+	style.Colors[ImGuiCol_Button] := [31, 30, 31, 255]
+	style.Colors[ImGuiCol_ButtonActive] := [41, 40, 41, 255]
+	style.Colors[ImGuiCol_ButtonHovered] := [41, 40, 41, 255]
+
+	style.Colors[ImGuiCol_Separator] := [70, 70, 70, 255]
+	style.Colors[ImGuiCol_SeparatorActive] := [76, 76, 76, 255]
+	style.Colors[ImGuiCol_SeparatorHovered] := [76, 76, 76, 255]
+
+	style.Colors[ImGuiCol_FrameBg] := [37, 36, 37, 255]
+	style.Colors[ImGuiCol_FrameBgActive] := [37, 36, 37, 255]
+	style.Colors[ImGuiCol_FrameBgHovered] := [37, 36, 37, 255]
+
+	style.Colors[ImGuiCol_Header] := [0, 0, 0, 0]
+	style.Colors[ImGuiCol_HeaderActive] := [0, 0, 0, 0]
+	style.Colors[ImGuiCol_HeaderHovered] := [46, 46, 46, 255]
 }

@@ -26,6 +26,8 @@
 #include <d3d11.h>
 #include "std_image.h"
 
+#include "imgui_internal.h"
+
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
 #include <tchar.h>
