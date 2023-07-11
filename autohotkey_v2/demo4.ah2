@@ -61,17 +61,21 @@ main()
         ;添加代码 =====================================
         ;https://github.com/kazhafeizhale/imgui4ahk/blob/master/cpp%20-1.88/icons.h
 
+        _ImGui_Columns(2)
+        _ImGui_SetColumnOffset(1, 120)
+
+        _ImGui_Button(Chr(0xf640) ' 下载', 100, 100)
+        _ImGui_Button(Chr(0xf15b) ' 复制', 100, 100)
+        _ImGui_Button(Chr(0xf6ae) ' 关闭', 100, 100)
+        _ImGui_Button(Chr(0xf07c) ' 打开', 100, 100)
+        ;====================================
+        _ImGui_NextColumn()
         window_draw_list := _ImGui_GetWindowDrawList()
 
         _ImDraw_SetDrawList(window_draw_list)
         p := _ImGui_GetWindowPos()
-        _ImDraw_AddImage(back_img_id, p[1], p[2], p[1] + back_img_size[1], p[2] + back_img_size[2])
+        ;_ImDraw_AddImage(back_img_id, p[1], p[2], p[1] + back_img_size[1], p[2] + back_img_size[2])
 
-        _ImGui_Button(Chr(0xf019) ' 下载', 100, 100)
-        _ImGui_Button(Chr(0xf15b) ' 复制', 100, 100)
-        _ImGui_Button(Chr(0xf20a) ' 关闭', 100, 100)
-        _ImGui_Button(Chr(0xf07c) ' 打开', 100, 100)
-        ;====================================
         _ImGui_End()
         _ImGui_EndFrame()
         sleep(10)

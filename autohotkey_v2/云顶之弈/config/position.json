@@ -1,1 +1,58 @@
-﻿{"HX":{"back_position":[670,1030],"back_position_1920_1080":[350,1030],"back_position_2560_1080":[670,1030],"find_fs":100,"key_hold_time":250,"d_time":150,"mouse_hold_time":30,"BackgroundColorRGB":"0x081010","dxgi":1,"sim":0.9},"position1":"805|1042|75|22","position2":"1010|1042|88|19","position3":"1207|1042|87|20","position4":"1406|1041|88|24","position5":"1608|1041|102|22","position":[796,1035,1011,44],"back_hero":{"希瓦娜":1,"霞":1,"赫卡里姆":1,"瑟庄妮":1,"洛":1,"扎克":1,"泽丽":1,"萨勤芬妮":1,"尼菈":1,"索姆":1}}
+﻿{
+    "HX": {
+        "back_position": [
+            670,
+            1030
+        ],
+        "back_position_1920_1080": [
+            350,
+            1030
+        ],
+        "back_position_2560_1080": [
+            670,
+            1030
+        ],
+        "find_fs": 70,
+        "key_hold_time": 250,
+        "d_time": 150,
+        "mouse_hold_time": 30,
+        "BackgroundColorRGB": "0x081010",
+        "dxgi": 1,
+        "sim": 0.9
+    },
+    "position1": "805|1042|75|22",
+    "position2": "1010|1042|88|19",
+    "position3": "1207|1042|87|20",
+    "position4": "1406|1041|88|24",
+    "position5": "1608|1041|102|22",
+    "position": [
+        "804",
+        "1039",
+        "992",
+        "35"
+    ],
+    "ocr_money_position": [
+        "1193",
+        "883",
+        "45",
+        "24"
+    ],
+    "back_hero": {
+        "崔丝塔娜": 1,
+        "波比": 1,
+        "黑默丁格": 1,
+        "杰斯": 1,
+        "泽丽": 1,
+        "赛娜": 1,
+        "茂凯": 1,
+        "佛耶戈": 1,
+        "格温": 1,
+        "提莫": 1,
+        "金克丝": 1
+    },
+    "is_stop": 1,
+    "click_on_the_number_of_times": 3,
+    "is_use_ocr": 0,
+    "min_money": 10,
+    "is_use_ocr_find_money": 1
+}

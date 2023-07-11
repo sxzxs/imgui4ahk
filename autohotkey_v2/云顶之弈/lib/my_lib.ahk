@@ -86,6 +86,13 @@ class HighlightOutline
             SetTimer(this.timer, -time_out)
         }
 	}
+    __Delete()
+    {
+        loop(4)
+        {
+            this.gui[A_Index].Destroy()
+        }
+    }
 	Show(x1, y1, x2, y2, b := 3) 
     {
 		Try 
@@ -163,4 +170,138 @@ class mtt
     {
         this.stop()
     }
+}
+deepclone(obj) {
+	objs := Map(), objs.Default := ''
+	return clone(obj)
+
+	clone(obj) {
+		switch Type(obj) {
+			case 'Array', 'Map':
+				o := obj.Clone()
+				for k, v in o
+					if IsObject(v)
+						o[k] := objs[p := ObjPtr(v)] || (objs[p] := clone(v))
+				return o
+			case 'Object':
+				o := obj.Clone()
+				for k, v in o.OwnProps()
+					if IsObject(v)
+						o.%k% := objs[p := ObjPtr(v)] || (objs[p] := clone(v))
+				return o
+			default:
+				return obj
+		}
+	}
+}
+
+;左键拖动选择范围
+GetRange(&x, &y, &w, &h)
+{
+    CoordMode "Mouse", "Screen"
+    GetRange_begin := true
+    loop
+    {
+        ToolTip("请按下鼠标左键")
+        sleep(50)
+        if(GetKeyState("Esc"))
+        {
+            ToolTip
+            return false
+        }
+    }until (GetKeyState("LButton"))
+    while GetKeyState("LButton")
+    {
+        if(GetRange_begin)
+        {
+            GetRange_begin :=  !GetRange_begin
+            MouseGetPos( &begin_x, &begin_y)
+        }
+        MouseGetPos &now_x, &now_y
+        ToolTip begin_x ", " begin_y "`n" Abs(begin_x-now_x) " x " Abs(begin_y-now_y)
+        HighlightOutline(begin_x, begin_y, now_x, now_y,,,,50)
+        Sleep 10
+    }
+    x := begin_x, y := begin_y, w := Abs(begin_x-now_x), h := Abs(begin_y-now_y)
+    ToolTip
+    return true
+}
+SelectScreenRegion(Key, Color := "Lime", Transparent:= 80)
+{
+	CoordMode("Mouse", "Screen")
+    loop
+    {
+        ToolTip("请按下: " Key)
+        sleep(50)
+        if(GetKeyState("Esc"))
+        {
+            ToolTip
+            return false
+        }
+    }until (GetKeyState(key))
+	MouseGetPos(&sX, &sY)
+	ssrGui := Gui("+AlwaysOnTop -caption +Border +ToolWindow +LastFound -DPIScale", 'section gui')
+	WinSetTransparent(Transparent)
+	ssrGui.BackColor := Color
+	Loop 
+	{
+		Sleep 10
+		MouseGetPos(&eX, &eY)
+		W := Abs(sX - eX), H := Abs(sY - eY)
+		X := Min(sX, eX), Y := Min(sY, eY)
+		ssrGui.Show("x" X " y" Y " w" W " h" H)
+	} Until !GetKeyState(Key, "p")
+	ssrGui.Destroy()
+    ToolTip
+	Return { X: X, Y: Y, W: W, H: H, X2: X + W, Y2: Y + H }
+}
+ReadProcessStdOut(cmd, stdin := "", encoding := "cp0", is_wait := true) {
+    sa := Buffer(24)
+    NumPut("uint", sa.Size, sa)
+    NumPut("ptr", 0, "uint", 1, sa, 8)
+
+    if !DllCall("CreatePipe", "ptr*", &hReadPipeOut := 0, "ptr*", &hWritePipeOut := 0, "ptr", sa, "uint", 0)
+        throw OSError()
+    DllCall("SetHandleInformation", "ptr", hReadPipeOut, "uint", 1, "uint", 0)
+
+    si := Buffer(104, 0)
+    NumPut("uint", si.Size, si)
+    NumPut("uint", 0x101, si, 60)
+    NumPut("ptr", hWritePipeOut, si, 88)
+
+    if stdin !== "" {
+        if !DllCall("CreatePipe", "ptr*", &hReadPipeIn := 0, "ptr*", &hWritePipeIn := 0, "ptr", sa, "uint", 0)
+            throw OSError()
+        DllCall("SetHandleInformation", "ptr", hWritePipeIn, "uint", 1, "uint", 0)
+        NumPut("ptr", hReadPipeIn, si, 80)
+    }
+
+    if !DllCall("CreateProcessW", "ptr", 0, "str", cmd, "ptr", 0, "ptr", 0, "int", true, "uint", 0, "ptr", 0, "ptr", 0, "ptr", si, "ptr", pi := Buffer(24)) {
+        DllCall("CloseHandle", "ptr", hWritePipeOut)
+        DllCall("CloseHandle", "ptr", hReadPipeOut)
+        throw OSError()
+    }
+    DllCall("CloseHandle", "ptr", NumGet(pi, "ptr"))
+    DllCall("CloseHandle", "ptr", NumGet(pi, 8, "ptr"))
+    DllCall("CloseHandle", "ptr", hWritePipeOut)
+
+
+    if stdin !== "" {
+        DllCall("CloseHandle", "ptr", hReadPipeIn)
+        if !DllCall("WriteFile", "ptr", hWritePipeIn, "astr", stdin, "uint", StrPut(stdin, encoding) - 1, "uint*", &lpNumberOfBytesWritten := 0, "ptr", 0){
+            DllCall("CloseHandle", "ptr", hWritePipeIn)
+            throw OSError()
+        }
+        DllCall("CloseHandle", "ptr", hWritePipeIn)
+    }
+
+	if(!is_wait)
+		return
+
+    stdout := ""
+    while DllCall("ReadFile", "ptr", hReadPipeOut, "ptr", buf := Buffer(4096), "uint", buf.Size, "uint*", &lpNumberOfBytesRead := 0, "ptr", 0) && lpNumberOfBytesRead
+        stdout .= StrGet(buf, lpNumberOfBytesRead, encoding)
+    DllCall("CloseHandle", "ptr", hReadPipeOut)
+
+    return stdout
 }

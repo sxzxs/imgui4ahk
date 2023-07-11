@@ -247,7 +247,7 @@ EXTERN_DLL_EXPORT HWND GUICreate(wchar_t* title, int w, int h, int x, int y, wch
     icons_config.PixelSnapH = true;
     icons_config.OversampleH = 2.5;
     icons_config.OversampleV = 2.5;
-    static const ImWchar icons_ranges[] = { 0xf000, 0xf3ff, 0 };
+    static const ImWchar icons_ranges[] = { 0xe000, 0xf8ff, 0 };
     fontAtlas->AddFontFromMemoryCompressedTTF(font_awesome_data, font_awesome_size, font_size, &icons_config, icons_ranges);
 
     //ImGuiSetStyle();
@@ -1353,7 +1353,8 @@ EXTERN_DLL_EXPORT bool InputIntN(int n, const wchar_t* label, int* v, ImGuiInput
 
 
 EXTERN_DLL_EXPORT bool ColorEdit(const wchar_t *label, ImU32* color, ImGuiColorEditFlags flags){
-	ImVec4 col = GetVec4Color(*color);
+	//ImVec4 col = GetVec4Color(*color);
+	ImVec4 col = ImGui::ColorConvertU32ToFloat4(*color);
 	bool result = ImGui::ColorEdit4(wstr_utf8(label).c_str(), (float*)&col, flags);
 	*color = ImColor(col);;
 	return result;

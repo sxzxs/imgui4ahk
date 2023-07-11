@@ -5,16 +5,21 @@
 #include <cv2>
 #include <ImagePut>
 #include <Gdip_All>
+#include <zmq>
+#include <Zmq_send2plug>
 
 ;配置及全局变量
-logger.is_log_open := false
+logger.is_log_open := true
 logger.is_out_file := false
 g_json_path := A_ScriptDir . "/config/config.json"
 g_position_json_path := A_ScriptDir . "/config/position.json"
+g_hero_config_path := A_ScriptDir . "/config/hero_config.json"
 config := Map()
 g_position_config := Map()
+g_hero_config := Map()
 loadconfig(&config, g_json_path)
 loadconfig(&g_position_config, g_position_json_path)
+loadconfig(&g_hero_config, g_hero_config_path)
 logger.info(g_position_config)
 g_now_hero := g_position_config["back_hero"]
 g_gif_index := 1
@@ -30,7 +35,10 @@ cv := ObjFromPtr(DllCall('opencv_ahk.dll\opencv_init', 'ptr', DllCall(A_AhkPath 
 g_screen_shot := cv.Mat()
 
 ;开找图线程
-thread_find_image := Worker('#include ' A_scriptdir '/thread.ah2')
+if(g_position_config["is_use_ocr"])
+    thread_find_image := Worker('#include ' A_scriptdir '/thread_ocr.ah2')
+else
+    thread_find_image := Worker('#include ' A_scriptdir '/thread.ah2')
 loop
 { 
 }until(thread_find_image.Ready)
@@ -60,6 +68,10 @@ main()
     global g_find_status := false
     static no_menu := false
     global g_main_window_collapse_status
+	global g_zmq_ctx := zmq_ctx_new()
+	global sender2plug := Zmq_send2plug() ;通过zmq 和 plug通讯
+	command := A_AhkPath ' /script ' A_ScriptDir "\tool\web\web.ah2 "
+	run(command)
     _Imgui_load_font_range(A_ScriptDir '/font/ImguiText.txt', &range_array := [], &length := 0, &raw_data)
     hwnd := _ImGui_GUICreate("AHK ImGui", 1, 1, -100, -100, 0, 0x80, 'from_memory_simhei', 18, , raw_data)
 
@@ -87,8 +99,58 @@ main()
         _ImGui_BeginFrame()
         if(!empty_memory)
             RunWait(A_ScriptDir "/lib/empty.exe AutoHotkey.exe",,'Hide'), empty_memory := true
+
+        if(!_ImGui_Begin("测试窗口", show_close := false, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+            my_exit()
+
+        _ImGui_PushStyleColor(ImGuiCol_Button, "0xff415911")
+        _ImGui_Text("选择的英雄"), _ImGui_SameLine()
+        for k,v in g_now_hero
+        {
+            static not_choose := false
+            not_choose := false
+            if(g_now_hero[k] == 0)
+            {
+                _ImGui_PushStyleColor(ImGuiCol_Button, "0xFFB53D66") ;#663DB5
+                not_choose := true
+            }
+            if(_ImGui_Button(k))
+                g_now_hero[k] := !g_now_hero[k]
+            if(not_choose)
+                _ImGui_PopStyleColor(1)
+            _ImGui_SameLine()
+        }
+        _ImGui_PopStyleColor(1)
+        _ImGui_SameLine()
+        if(_ImGui_CheckBox("循环(CTRL+5)", &g_find_status))
+        {
+            start_and_stop_thread()
+        }
+        _ImGui_SameLine()
+        if(_ImGui_Button("一键花光"))
+        {
+            if(g_find_status)
+            {
+                ToolTip("结束挂机!", 0, 0)
+                g_find_status := false
+                start_and_stop_thread()
+                loop
+                {
+                }until (g_find_status == false)
+            }
+            g_find_status := !g_find_status
+            start_and_stop_thread(true)
+        }
+        _ImGui_SameLine()
+        if(_ImGui_Button("阵容攻略"))
+        {
+            sender2plug.pub('@show')
+        }
+        _ImGui_End()
+
         if(!_ImGui_Begin("云顶之弈", show_close := true, ImGuiWindowFlags_AlwaysAutoResize))
             my_exit()
+
 
         if(_ImGui_IsWindowCollapsed())
             g_main_window_collapse_status := true
@@ -151,8 +213,47 @@ main()
                 _ImGui_PopStyleColor(1)
                 _ImGui_NewLine()
 
+                static current_config_name := ""
+                _ImGui_InputText("name:", &current_config_name)
+                _ImGui_SameLine()
+                if(_ImGui_Button("save"))
+                {
+                    if(current_config_name != "")
+                    {
+                        g_hero_config[current_config_name] := deepclone(g_now_hero)
+                    }
+                }
+                if(_ImGui_CollapsingHeader("阵容"))
+                {
+                    for k,v in g_hero_config
+                    {
+                        _ImGui_PushStyleColor(ImGuiCol_Button, "0xffe12fa0")
+                        _ImGui_Button(k ':')
+                        _ImGui_PopStyleColor(1)
+                        for i,j in v
+                        {
+
+                            _ImGui_PushStyleColor(ImGuiCol_Button, "0xff0a3f27")
+                            _ImGui_SameLine()
+                            _ImGui_Button(i)
+                            _ImGui_PopStyleColor(1)
+                        }
+                        _ImGui_SameLine()
+                        if(_ImGui_Button("使用##" k))
+                        {
+                            g_now_hero := deepclone(v)
+                        }
+                        _ImGui_SameLine()
+                        if(_ImGui_Button("删除##" k))
+                        {
+                            g_hero_config.Delete(k)
+                        }
+                    }
+                }
+                ;_ImGui_NewLine()
                 if(_ImGui_CollapsingHeader("英雄列表"))
                 {
+                    _ImGui_BeginChild("sub window", 700, 500)
                     _ImGui_PushStyleColor(ImGuiCol_Button, "0xff0dae4a")
                     _ImGui_SetWindowFontScale(0.8)
                     job_number := 0
@@ -205,6 +306,7 @@ main()
                         }
                         _ImGui_NewLine()
                     }
+                    _ImGui_EndChild()
                 }
                 _ImGui_EndTabItem()
             }
@@ -212,12 +314,22 @@ main()
             {
                 if(_ImGui_Button("设置取图范围"))
                 {
-                    if(GetRange(&x, &y, &w, &h))
+                    if(my_select_region(&x, &y, &w, &h))
                     {
                         g_position_config['position'][1] := x
                         g_position_config['position'][2] := y
                         g_position_config['position'][3] := w
                         g_position_config['position'][4] := h
+                    }
+                }
+                if(_ImGui_Button("设定金币ocr范围"))
+                {
+                    if(my_select_region(&x, &y, &w, &h))
+                    {
+                        g_position_config['ocr_money_position'][1] := x
+                        g_position_config['ocr_money_position'][2] := y
+                        g_position_config['ocr_money_position'][3] := w
+                        g_position_config['ocr_money_position'][4] := h
                     }
                 }
                 static search_fps := g_position_config['HX']['find_fs']
@@ -226,13 +338,32 @@ main()
                 static d_time := g_position_config['HX']['d_time']
                 static BackgroundColorRGB := g_position_config['HX']['BackgroundColorRGB']
                 static is_dxgi := g_position_config['HX']['dxgi']
+                static is_stop := g_position_config['is_stop']
+                static click_on_the_number_of_times := g_position_config['click_on_the_number_of_times']
+                static min_money := g_position_config['min_money']
                 static sim := g_position_config['HX']['sim']
+                static is_use_ocr := g_position_config['is_use_ocr']
+                static is_use_ocr_find_money := g_position_config['is_use_ocr_find_money']
                 _ImGui_InputInt("搜索间隔ms##search_fps", &search_fps)
                 _ImGui_InputInt("按键按住时间ms##key_hold_time", &key_hold_time)
                 ;_ImGui_InputInt("D牌后延迟ms##D_time", &d_time)
                 _ImGui_InputInt("鼠标按住时间ms##mouse_hold_time", &mouse_hold_time)
+                _ImGui_InputInt("点击次数##click_on_the_number_of_times", &click_on_the_number_of_times)
+                _ImGui_InputInt("D牌停止最小金币##min_money", &min_money)
                 _ImGui_InputDouble("相似度",&sim)
                 _ImGui_InputTextWithHint("取牌后颜色##BackgroundColorRGB", BackgroundColorRGB , &BackgroundColorRGB, ImGuiInputTextFlags_CharsNoBlank)
+                if(_ImGui_CheckBox("买不了牌是否停止", &is_stop))
+                {
+                    g_position_config['is_stop'] := is_stop
+                }
+                if(_ImGui_CheckBox("是否使用OCR识别(修改配置需要重启)", &is_use_ocr))
+                {
+                    g_position_config['is_use_ocr'] := is_use_ocr
+                }
+                if(_ImGui_CheckBox("是否通过OCR判定金币", &is_use_ocr_find_money))
+                {
+                    g_position_config['is_use_ocr_find_money'] := is_use_ocr_find_money
+                }
                 if(_ImGui_CheckBox("是否使用DXGI截图", &is_dxgi))
                 {
                     g_position_config['HX']['dxgi'] := is_dxgi
@@ -245,6 +376,9 @@ main()
                     g_position_config['HX']['d_time'] := d_time
                     g_position_config['HX']['BackgroundColorRGB'] := BackgroundColorRGB
                     g_position_config['HX']['sim'] := sim
+                    g_position_config['click_on_the_number_of_times'] := click_on_the_number_of_times
+                    g_position_config['is_stop'] := is_stop
+                    g_position_config['min_money'] := min_money
                 }
                 _ImGui_Text("CTRL+5 : 循环找图, 暂停")
                 _ImGui_Text("CTRL+1 : 显示隐藏界面")
@@ -274,7 +408,7 @@ loadconfig(&config, json_path)
 ;保存配置函数
 saveconfig(config, json_path)
 {
-    str := JSON.stringify(config)
+    str := JSON.stringify(config, 4)
     FileDelete(json_path)
     FileAppend(str, json_path, 'UTF-8')
 }
@@ -359,7 +493,9 @@ back(*)
     global g_position_config
     g_position_config["back_hero"] := g_now_hero
     saveconfig(g_position_config, g_position_json_path)
+    saveconfig(g_hero_config, g_hero_config_path)
     dxgi_free_memory()
+    sender2plug.pub('@exit')
 }
 ;ui出发找图和停止
 start_and_stop_thread(is_spend_all := false, is_run_one_time := false)
@@ -424,38 +560,6 @@ show_hide_window_clollapse(*)
         _ImGui_SetWindowCollapsedByName("云顶之弈", false)
     else
         _ImGui_SetWindowCollapsedByName("云顶之弈", true)
-}
-
-;左键拖动选择范围
-GetRange(&x, &y, &w, &h)
-{
-    CoordMode "Mouse", "Screen"
-    GetRange_begin := true
-    loop
-    {
-        ToolTip("请按下鼠标左键")
-        sleep(50)
-        if(GetKeyState("Esc"))
-        {
-            ToolTip
-            return false
-        }
-    }until (GetKeyState("LButton"))
-    while GetKeyState("LButton")
-    {
-        if(GetRange_begin)
-        {
-            GetRange_begin :=  !GetRange_begin
-            MouseGetPos( &begin_x, &begin_y)
-        }
-        MouseGetPos &now_x, &now_y
-        ToolTip begin_x ", " begin_y "`n" Abs(begin_x-now_x) " x " Abs(begin_y-now_y)
-        HighlightOutline(begin_x, begin_y, now_x, now_y,,,,50)
-        Sleep 10
-    }
-    x := begin_x, y := begin_y, w := Abs(begin_x-now_x), h := Abs(begin_y-now_y)
-    ToolTip
-    return true
 }
 
 ; 传入带有中文字符的脚本路径
@@ -611,4 +715,21 @@ set_imgui_style()
 	style.Colors[ImGuiCol_Header] := [0, 0, 0, 0]
 	style.Colors[ImGuiCol_HeaderActive] := [0, 0, 0, 0]
 	style.Colors[ImGuiCol_HeaderHovered] := [46, 46, 46, 255]
+}
+
+my_select_region(&x, &y, &w, &h)
+{
+    rtn := ReadProcessStdOut(A_ScriptDir '\get_region.exe')
+    logger.info(rtn)
+    if(rtn != 'error')
+    {
+        word_array := StrSplit(rtn, A_Space, ".")  ; 忽略句点.
+        x := word_array[1], y := word_array[2]
+        w := word_array[3], h := word_array[4]
+    }
+    else
+    {
+        return false
+    }
+    return true
 }
