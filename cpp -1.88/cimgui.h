@@ -6,6 +6,8 @@
 #define CIMGUI_INCLUDED
 #include <stdio.h>
 #include <stdint.h>
+
+//#define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #if defined _WIN32 || defined __CYGWIN__
     #ifdef CIMGUI_NO_EXPORT
         #define API

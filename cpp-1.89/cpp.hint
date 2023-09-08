@@ -1,0 +1,2 @@
+﻿#define CPP189_API __declspec(dllexport)
+#define CPP189_API __declspec(dllimport)

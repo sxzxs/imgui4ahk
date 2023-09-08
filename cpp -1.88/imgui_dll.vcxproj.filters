@@ -78,6 +78,9 @@
     <ClInclude Include="simhei.h">
       <Filter>imgui\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="imgui_styles.h">
+      <Filter>imgui\Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui_dll.cpp">
@@ -117,6 +120,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="cimgui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_styles.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

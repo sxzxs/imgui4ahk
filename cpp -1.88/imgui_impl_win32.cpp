@@ -1192,4 +1192,13 @@ void ImGui_ImplWin32_EnableAlphaCompositing(void* hwnd)
     }
 }
 
+HWND ImGui_ImplWin32_Get_ViewReport_hwnd(ImGuiViewport* viewport)
+{
+    ImGui_ImplWin32_ViewportData* vd = (ImGui_ImplWin32_ViewportData*)viewport->PlatformUserData;
+    if (vd != nullptr)
+        return vd->Hwnd;
+    else
+        return nullptr;
+}
+
 //---------------------------------------------------------------------------------------------------------

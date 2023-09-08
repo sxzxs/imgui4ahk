@@ -21,7 +21,10 @@ main()
     arr := [1,2,3,4,5,6]
 
     ;hwnd := _ImGui_GUICreate("AHK ImGui", 1, 1, -100, -100, 0, 0x80, "from_memory_ali")
-    hwnd := _ImGui_GUICreate("AHK ImGui", 1, 1, -100, -100, 0, 0x80)
+    hwnd := _ImGui_GUICreate("AHK ImGui", 0, 0, -5000, -5000, 0, 0x80)
+
+    WS_CAPTION :=  0x00C00000, WS_THICKFRAME := 0x00040000
+    SetWindowLong(hwnd, -16, GetWindowLong(hWnd, -16) & ~WS_CAPTION & ~WS_THICKFRAME)
 
     ;hwnd := _ImGui_GUICreate("AHK ImGui", 1000, 1000, 500, 500, 0, 0x80)
     ;hwnd := _ImGui_GUICreate("AHK ImGui", 1000, 1000, 500, 500)

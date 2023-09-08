@@ -12,8 +12,8 @@ main()
     SWP_NOSIZE := 0x0001
     SWP_FRAMECHANGED := 0x0020
     hwnd := _ImGui_GUICreate("AHK ImGui", 0, 0, -3000, -3000, 0, 0)
-    SetWindowLong(hwnd, -16, GetWindowLong(hWnd, -16) & ~WS_CAPTION & ~WS_THICKFRAME)
-    SetWindowPos(hWnd, 0, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE|SWP_FRAMECHANGED)
+    SetWindowLong(hwnd, -16, GetWindowLong(hWnd, -16) & ~WS_CAPTION)
+    ;SetWindowPos(hWnd, 0, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE|SWP_FRAMECHANGED)
     WinShow(hwnd)
     WinSetAlwaysOnTop( 1,hwnd)
 
@@ -45,6 +45,7 @@ main()
 	style.Colors[ImGuiCol_HeaderHovered] := [46, 46, 46, 255]
 
     io := _ImGui_GetIO()
+    io := Imgui_io(io)
     _ImGui_SetWindowTitleAlign(0.5, 0.5)
     _ImGui_EnableDocking(True)
     static window_flags := 0
@@ -61,6 +62,7 @@ main()
         ;添加代码 =====================================
         ;https://github.com/kazhafeizhale/imgui4ahk/blob/master/cpp%20-1.88/icons.h
 
+        _ImGui_Text(io.Framerate)
         _ImGui_Columns(2)
         _ImGui_SetColumnOffset(1, 120)
 

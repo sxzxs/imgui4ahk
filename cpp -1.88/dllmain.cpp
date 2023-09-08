@@ -10,10 +10,20 @@
 #include "alifont.hpp"
 #include "simhei.h"
 #include "iconcpp.h"
+#include "imgui_styles.h"
+#include <thread>
+
+#include "imgui_internal.h"
+#include "imgui_impl_win32.h"
 
 
 #define  OK 0
 #define ERROR_PARAMETER -1
+
+extern bool g_wndMinimized;
+
+extern UINT g_ResizeWidth;
+extern UINT g_ResizeHeight;
 
 BOOL APIENTRY DllMain(HMODULE hModule,
 	DWORD  ul_reason_for_call,
@@ -122,13 +132,28 @@ std::wstring utf8_wstr(const std::string& str)
     return myconv.from_bytes(str);
 }
 
+std::string wstr_to_gbk(const std::wstring& str)
+{
+	//GBK locale name in windows
+	const char* GBK_LOCALE_NAME = ".936";
+	std::wstring_convert<std::codecvt_byname<wchar_t, char, mbstate_t>> convert(new std::codecvt_byname<wchar_t, char, mbstate_t>(GBK_LOCALE_NAME));
+	return convert.to_bytes(str);
+}
 
+std::wstring gbk_to_wstr(const std::string& str)
+{
+	//GBK locale name in windows
+	const char* GBK_LOCALE_NAME = ".936";
+	std::wstring_convert<std::codecvt_byname<wchar_t, char, mbstate_t>> convert(new std::codecvt_byname<wchar_t, char, mbstate_t>(GBK_LOCALE_NAME));
+	return convert.from_bytes(str);
+}
 
 EXTERN_DLL_EXPORT void EnableViewports(bool enable) {
     bEnableViewPort = enable;
 }
 
-EXTERN_DLL_EXPORT HWND GUICreate(wchar_t* title, int w, int h, int x, int y, wchar_t* font_path, float font_size, wchar_t *font_range, wchar_t *charBuf) {
+EXTERN_DLL_EXPORT HWND GUICreate(wchar_t* title, int w, int h, int x, int y, wchar_t* font_path, float font_size, wchar_t *font_range, wchar_t *charBuf, int OversampleH = 1, int OversampleV = 1, bool PixelSnapH = false) 
+{
 
     if (x == -1 || y == -1) {
         RECT rc;
@@ -224,8 +249,10 @@ EXTERN_DLL_EXPORT HWND GUICreate(wchar_t* title, int w, int h, int x, int y, wch
 		glyphRange = (ImWchar *)charBuf;
 	}
 	ImFontConfig config_words{};
-	config_words.OversampleH = 1;
-	config_words.OversampleV = 1;
+	config_words.OversampleH = OversampleH;
+	config_words.OversampleV = OversampleV;
+	config_words.SizePixels = font_size;
+	config_words.PixelSnapH = PixelSnapH;
 	//config_words.GlyphExtraSpacing.x = 0.1f;
 	if (font_path == std::wstring(L"from_memory_ali"))
 	{
@@ -234,6 +261,10 @@ EXTERN_DLL_EXPORT HWND GUICreate(wchar_t* title, int w, int h, int x, int y, wch
 	else if (font_path == std::wstring(L"from_memory_simhei"))
 	{
 		fontAtlas->AddFontFromMemoryTTF(simhei_font(), simhei_size, font_size, &config_words, glyphRange);	
+	}
+	else if (font_path == std::wstring(L"default"))
+	{
+		fontAtlas->AddFontDefault(&config_words);
 	}
 	else
 	{
@@ -258,6 +289,77 @@ EXTERN_DLL_EXPORT HWND GUICreate(wchar_t* title, int w, int h, int x, int y, wch
     return main_hwnd;
    
 }
+
+EXTERN_DLL_EXPORT bool load_font(ImFont **font, wchar_t *font_path, float font_size, wchar_t *font_range, wchar_t *charBuf, int OversampleH = 1, int OversampleV = 1, bool PixelSnapH = false)
+{
+	int rtn = OK;
+	*font = nullptr;
+    auto fontAtlas = ImGui::GetIO().Fonts;
+
+    auto glyphRange = fontAtlas->GetGlyphRangesVietnamese();
+	std::wstring font_rangew(font_range);
+	if (font_rangew == std::wstring(L"GetGlyphRangesDefault"))
+	{
+		glyphRange = fontAtlas->GetGlyphRangesDefault();
+	}
+	else if (font_rangew == std::wstring(L"GetGlyphRangesKorean"))
+	{
+		glyphRange = fontAtlas->GetGlyphRangesKorean();
+	}
+	else if (font_rangew == std::wstring(L"GetGlyphRangesJapanese"))
+	{
+		glyphRange = fontAtlas->GetGlyphRangesJapanese();
+	}
+	else if (font_rangew == std::wstring(L"GetGlyphRangesChineseFull"))
+	{
+		glyphRange = fontAtlas->GetGlyphRangesChineseFull();
+	}
+	else if (font_rangew == std::wstring(L"GetGlyphRangesChineseSimplifiedCommon"))
+	{
+		glyphRange = fontAtlas->GetGlyphRangesChineseSimplifiedCommon();
+	}
+	else if (font_rangew == std::wstring(L"GetGlyphRangesCyrillic"))
+	{
+		glyphRange = fontAtlas->GetGlyphRangesCyrillic();
+	}
+	else if (font_rangew == std::wstring(L"GetGlyphRangesThai"))
+	{
+		glyphRange = fontAtlas->GetGlyphRangesThai();
+	}
+	else if (font_rangew == std::wstring(L"GetGlyphRangesVietnamese"))
+	{
+		glyphRange = fontAtlas->GetGlyphRangesVietnamese();
+	}
+    //fontAtlas->AddFontFromFileTTF("C:\\Windows\\Fonts\\calibri.ttf", 15.5f, 0, glyphRange);
+
+	if (charBuf != 0)
+	{
+		glyphRange = (ImWchar *)charBuf;
+	}
+	ImFontConfig config_words{};
+	config_words.OversampleH = OversampleH;
+	config_words.OversampleV = OversampleV;
+	config_words.SizePixels = font_size;
+	config_words.PixelSnapH = PixelSnapH;
+	//config_words.GlyphExtraSpacing.x = 0.1f;
+	if (font_path == std::wstring(L"from_memory_ali"))
+	{
+		*font = fontAtlas->AddFontFromMemoryTTF(aliFont(), alifont_size, font_size, &config_words, glyphRange);
+	}
+	else if (font_path == std::wstring(L"from_memory_simhei"))
+	{
+		*font = fontAtlas->AddFontFromMemoryTTF(simhei_font(), simhei_size, font_size, &config_words, glyphRange);	
+	}
+	else if (font_path == std::wstring(L"default"))
+	{
+		*font = fontAtlas->AddFontDefault(&config_words);
+	}
+	else
+	{
+		*font = fontAtlas->AddFontFromFileTTF(wstr_utf8(font_path).c_str(), font_size, &config_words, glyphRange);
+	}
+	return rtn;
+}
 EXTERN_DLL_EXPORT bool PeekMsg() {
 
     static MSG msg;
@@ -272,6 +374,21 @@ EXTERN_DLL_EXPORT bool PeekMsg() {
     return !is_closed;
 }
 EXTERN_DLL_EXPORT void BeginFrame() {
+
+	// Don't render if the window is minimized
+	if (g_wndMinimized)
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(20)); // drop to 5 FPS when invisible
+	}
+
+	// Handle window resize (we don't resize directly in the WM_SIZE handler)
+	if (g_ResizeWidth != 0 && g_ResizeHeight != 0)
+	{
+		CleanupRenderTarget();
+		g_pSwapChain->ResizeBuffers(0, g_ResizeWidth, g_ResizeHeight, DXGI_FORMAT_UNKNOWN, 0);
+		g_ResizeWidth = g_ResizeHeight = 0;
+		CreateRenderTarget();
+	}
 
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
@@ -1747,6 +1864,26 @@ EXTERN_DLL_EXPORT void imgui_toggle_button(wchar_t* str_id, bool* v)
 
     draw_list->AddRectFilled(p, ImVec2(p.x + width, p.y + height), col_bg, height * 0.5f);
     draw_list->AddCircleFilled(ImVec2(p.x + radius + t * (width - radius * 2.0f), p.y + radius), radius - 1.5f, IM_COL32(255, 255, 255, 255));
+}
+
+EXTERN_DLL_EXPORT void load_style_from_file(const wchar_t* fileName)
+{
+	ImGui::LoadStyleFrom(wstr_to_gbk(fileName).c_str());
+}
+
+EXTERN_DLL_EXPORT void save_style_to_file(const wchar_t* fileName)
+{
+	ImGui::SaveStylesTo(wstr_to_gbk(fileName).c_str());
+}
+
+EXTERN_DLL_EXPORT HWND get_view_port_window_hwnd(ImGuiViewport* viewport)
+{
+	return ImGui_ImplWin32_Get_ViewReport_hwnd(viewport);
+}
+
+EXTERN_DLL_EXPORT void EnableAlphaCompositing(void* hwnd)
+{
+	ImGui_ImplWin32_EnableAlphaCompositing(hwnd);
 }
 
 EXTERN_DLL_EXPORT  bool imgui_dll_test(float *f, int *i, double *d)

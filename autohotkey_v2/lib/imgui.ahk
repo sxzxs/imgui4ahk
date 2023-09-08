@@ -1,4 +1,5 @@
-﻿;by ahker, 2397633100@qq.com
+﻿#Requires AutoHotkey v2.0
+;by ahker, 2397633100@qq.com
 ;https://gitee.com/kazhafeizhale/imgui4ahk
 ;https://github.com/thedemons/imgui-autoit
 ;dx修复工具
@@ -467,6 +468,7 @@ _ImGui_SetWindowTitleAlign(x := 0.5, y := 0.5)
 *   - 内存加载
 *		- from_memory_ali
 *		- from_memory_simhei
+*		- default
 * @font_size 字体大小
 * @font_range 字体的范围
 *	- GetGlyphRangesDefault
@@ -479,18 +481,27 @@ _ImGui_SetWindowTitleAlign(x := 0.5, y := 0.5)
 *	- GetGlyphRangesVietnamese
 * @range_charBuf 从配置文件中读取的字体范围, 配合_Imgui_load_font_range 使用
 */
-_ImGui_GUICreate(title, w, h, x := -1, y := -1, style := 0, ex_style := 0, font_path := "c:/windows/fonts/simhei.ttf", font_size := 20, font_range := "GetGlyphRangesChineseFull", range_charBuf := 0)
+_ImGui_GUICreate(title, w, h, x := -1, y := -1, style := 0, ex_style := 0, font_path := "from_memory_simhei", font_size := 20, font_range := "GetGlyphRangesChineseFull", range_charBuf := 0, OversampleH := 2, OversampleV := 1, PixelSnapH := false)
 {
     global __imgui_created
     if(__imgui_created)
         return False
-	result := DllCall("imgui\GUICreate", "wstr", title, "int", w, "int", h, "int", x, "int", y, "wstr", font_path, "float", font_size, "wstr", font_range, "ptr", range_charBuf)
+	result := DllCall("imgui\GUICreate", "wstr", title, "int", w, "int", h, "int", x, "int", y, "wstr", font_path, "float", font_size, "wstr", font_range, "ptr", range_charBuf, "int", OversampleH, "int", OversampleV, "int", PixelSnapH)
     if(style != 0)
         DllCall("SetWindowLong", "Ptr", result, "Int", -16 ,"Int", style)
     if(ex_style != 0)
         DllCall("SetWindowLong", "Ptr", result, "Int", -20, "Int", ex_style)
 	__imgui_created := True
     return result
+}
+_Imgui_GUICreate_Unbackground(title)
+{
+    WS_CAPTION :=  0x00C00000
+    WS_THICKFRAME := 0x00040000
+    hwnd := _ImGui_GUICreate(title, 0, 0, -5000, -5000, 0, 0x80)
+    SetWindowLong(hwnd, -16, GetWindowLong(hWnd, -16) & ~WS_CAPTION & ~WS_THICKFRAME)
+	WinHide(hwnd)
+	return hwnd
 }
 _ImGui_PeekMsg()
 {
@@ -2277,7 +2288,7 @@ _ImDraw_AddImageFit(user_texture_id, pos_x, pos_y, size_x := 0, size_y := 0, cro
 	"float", pos_y,
 	"float", size_x,
 	"float", size_y,
-	"boolean", crop_area,
+	"int", crop_area,
 	"float", rounding,
 	"uint", tint_col,
 	"int", rounding_corners)
@@ -2371,6 +2382,29 @@ _Imgui_load_font_range(file_path, &range_array, &length, &raw_data)
 	loop(length)
 		range_array.Push(NumGet(struct_value, (A_Index -1) * 4, "int"))
 }
+
+;加载字体
+_Imgui_load_font(font_path := "from_memory_simhei", font_size := 20, font_range := "GetGlyphRangesChineseFull", range_charBuf := 0, OversampleH := 1, OversampleV := 1, PixelSnapH := false)
+{
+	font := 0
+	result := DllCall("imgui\load_font", "ptr*", &font, "wstr", font_path, "float", font_size, "wstr", font_range, "ptr", range_charBuf, "int", OversampleH, "int", OversampleV, "int", PixelSnapH)
+	return font
+}
+
+;保存style
+_Imgui_save_style_to_file(file_path)
+{
+	DllCall("imgui\save_style_to_file", 'wstr', file_path)
+}
+
+_Imgui_load_style_from_file(file_path)
+{
+	DllCall("imgui\load_style_from_file", 'wstr', file_path)
+}
+
+
+;加载style
+
 /*
 * 从给定的字符串中获取字符的编码范围
 * @string 字符串， utf-16
@@ -3205,4 +3239,16 @@ _Imgui_bgr2rgb(x)
     r := (x & 0xff) << 16
     b := (x & 0xff0000) >> 16
     return (r | g | b) & 0xffffff
+}
+
+_Imgui_get_viewport_hwnd(viewport)
+{
+	result := DllCall("imgui\get_view_port_window_hwnd", "ptr", viewport, "ptr")
+	return result
+}
+
+
+_Imgui_EnableAlphaCompositing(hwnd)
+{
+	DllCall("imgui\get_view_port_window_hwnd", "ptr", hwnd)
 }
